@@ -1,0 +1,147 @@
+import React from 'react';
+import { EdgeProps } from 'reactflow';
+import { useProjectStore } from '../store/useProjectStore';
+
+export const CustomEdge: React.FC<EdgeProps> = ({
+    id,
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    data
+}) => {
+    const activeFlow = useProjectStore(state => state.activeFlow);
+    const activeStepIndex = useProjectStore(state => state.activeStepIndex);
+
+    // Default label/colors if not in data
+    const label = data?.label || "";
+    const type = data?.type || "request";
+    const sourceColor = data?.sourceColor || "hsl(200,80%,58%)";
+    const targetColor = data?.targetColor || "hsl(200,80%,58%)";
+
+    // Determine simulation state classes
+    let isActive = false;
+    let isPrev = false;
+    let isDimmed = false;
+
+    if (activeFlow) {
+        const activeEdges: [string, string][] = [];
+        const prevEdges: [string, string][] = [];
+        for (let i = 0; i < activeStepIndex; i++) {
+            prevEdges.push([activeFlow.steps[i].node, activeFlow.steps[i+1].node]);
+        }
+        if (activeStepIndex > 0) {
+            activeEdges.push([activeFlow.steps[activeStepIndex-1].node, activeFlow.steps[activeStepIndex].node]);
+        }
+
+        isActive = activeEdges.some(([a, b]) => (source === a && target === b) || (source === b && target === a));
+        isPrev = prevEdges.some(([a, b]) => (source === a && target === b) || (source === b && target === a));
+        isDimmed = !isActive && !isPrev;
+    }
+
+    // Bezier control points calculation matching legacy makeBezier
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    
+    // Choose horizontal or vertical control point offsets based on handle orientation
+    const isHorizontal = 
+        sourcePosition === 'left' || 
+        sourcePosition === 'right' || 
+        targetPosition === 'left-t' || 
+        targetPosition === 'right-t';
+
+    const t = Math.min(Math.abs(dx), Math.abs(dy), 160) * 0.55 + 50;
+    
+    let c1x = sourceX;
+    let c1y = sourceY;
+    let c2x = targetX;
+    let c2y = targetY;
+
+    if (isHorizontal) {
+        c1x = sourceX + (sourcePosition === 'left' ? -t : t);
+        c2x = targetX + (targetPosition === 'left-t' ? -t : t);
+    } else {
+        c1y = sourceY + (sourcePosition === 'top' ? -t : t);
+        c2y = targetY + (targetPosition === 'top-t' ? -t : t);
+    }
+
+    const pathD = `M ${sourceX} ${sourceY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${targetX} ${targetY}`;
+
+    // Arrow calculations
+    const angle = Math.atan2(targetY - c2y, targetX - c2x);
+    const aLen = 8;
+    const arrowD = `M ${targetX - aLen * Math.cos(angle - 0.4)} ${targetY - aLen * Math.sin(angle - 0.4)} L ${targetX} ${targetY} L ${targetX - aLen * Math.cos(angle + 0.4)} ${targetY - aLen * Math.sin(angle + 0.4)}`;
+
+    // Build class lists
+    const stateClass = isActive ? 'flow-active' : isPrev ? 'flow-active-prev' : isDimmed ? 'flow-dimmed' : '';
+    
+    const lineClasses = ['conn-line', stateClass].filter(Boolean).join(' ');
+    const arrowClasses = ['conn-arrow', stateClass].filter(Boolean).join(' ');
+    const labelClasses = ['conn-label', stateClass].filter(Boolean).join(' ');
+    const dotClasses = ['conn-dot', stateClass].filter(Boolean).join(' ');
+
+    const lineStyle: React.CSSProperties = {};
+    if (type === "future") {
+        lineStyle.opacity = "0.12";
+    }
+
+    const gradientId = `cg-${id.replace(/[^a-zA-Z0-9-]/g, '_')}`;
+
+    return (
+        <>
+            <defs>
+                <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={sourceX} y1={sourceY} x2={targetX} y2={targetY}>
+                    <stop offset="0%" stopColor={sourceColor} />
+                    <stop offset="100%" stopColor={targetColor} />
+                </linearGradient>
+            </defs>
+
+            {/* Path */}
+            <path
+                id={id}
+                d={pathD}
+                stroke={`url(#${gradientId})`}
+                className={lineClasses}
+                style={lineStyle}
+                strokeDasharray={type === "data" ? "6 4" : type === "future" ? "3 6" : undefined}
+            />
+
+            {/* Arrow */}
+            <path
+                d={arrowD}
+                stroke={targetColor}
+                fill="none"
+                className={arrowClasses}
+            />
+
+            {/* Label */}
+            {label && (
+                <text
+                    x={(sourceX + targetX) / 2}
+                    y={(sourceY + targetY) / 2 - 7}
+                    textAnchor="middle"
+                    className={labelClasses}
+                >
+                    {label}
+                </text>
+            )}
+
+            {/* Flow dot (Only animate when not in a dimmed state during active flow simulation, or always if default) */}
+            <circle
+                r={3}
+                fill={targetColor}
+                className={dotClasses}
+            >
+                <animateMotion
+                    dur={`${3 + Math.random() * 2.5}s`}
+                    repeatCount="indefinite"
+                    path={pathD}
+                />
+            </circle>
+        </>
+    );
+};
