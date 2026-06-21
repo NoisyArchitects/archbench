@@ -1383,26 +1383,33 @@ export { drawConnections, panToNode, nodeEls };
         wizardBtnBrowseFile.addEventListener("click", () => wizardFileInput.click());
     }
 
-    // Delegated click handler for dynamically created elements inside the onboarding wizard status container
+    // Delegated click handler for dynamically created or static elements inside the onboarding wizard status container
     document.addEventListener("click", (e) => {
         const btn = e.target.closest("button");
         if (!btn) return;
         
-        if (btn.id === "btn-copy-onboarding-prompt") {
+        if (btn.id === "btn-copy-onboarding-prompt" || btn.id === "btn-copy-static-prompt") {
             const promptText = `You are a senior system architect. I have initialized an ArchBench workspace. Analyze my codebase files and write the architecture specification directly into architecture.md in my root folder, following the format rules in PROJECT_RULES.md. Do not output explanations, only write the markdown code.`;
             copyToClipboard(promptText, "🤖 LLM System Prompt copied to clipboard! Paste it into your AI workspace.");
-        } else if (btn.id === "btn-download-scaffold-arch") {
-            if (wizardScannedProjectSpec) {
-                const mdContent = exportProjectToMarkdown(wizardScannedProjectSpec);
-                downloadFile(mdContent, "architecture.md", "text/markdown");
-                showToast("📥 Saved architecture.md starter template!");
-            }
-        } else if (btn.id === "btn-download-scaffold-rules") {
-            if (wizardScannedProjectSpec) {
-                const rulesContent = generateProjectRulesContent(wizardScannedProjectSpec.title);
-                downloadFile(rulesContent, "PROJECT_RULES.md", "text/markdown");
-                showToast("📥 Saved PROJECT_RULES.md prompt rules!");
-            }
+        } else if (btn.id === "btn-download-scaffold-arch" || btn.id === "btn-download-static-arch") {
+            const spec = wizardScannedProjectSpec || {
+                title: (wizardAnalyzeTitle && wizardAnalyzeTitle.value.trim()) || "Workspace Scaffold",
+                version: "1.0",
+                nodes: [
+                    { id: "client", category: "Entry Point", title: "Web Frontend", icon: "💻", color: "hsl(210,85%,62%)", x: 300, y: 250, desc: "Default client interface." },
+                    { id: "api", category: "Service", title: "Core Service", icon: "⚙️", color: "hsl(200,80%,58%)", x: 750, y: 250, desc: "Default backend API service." }
+                ],
+                connections: [["client", "api", "HTTPS Request", "request"]],
+                flows: []
+            };
+            const mdContent = exportProjectToMarkdown(spec);
+            downloadFile(mdContent, "architecture.md", "text/markdown");
+            showToast("📥 Saved architecture.md starter template!");
+        } else if (btn.id === "btn-download-scaffold-rules" || btn.id === "btn-download-static-rules") {
+            const title = (wizardAnalyzeTitle && wizardAnalyzeTitle.value.trim()) || "Workspace Scaffold";
+            const rulesContent = generateProjectRulesContent(title);
+            downloadFile(rulesContent, "PROJECT_RULES.md", "text/markdown");
+            showToast("📥 Saved PROJECT_RULES.md prompt rules!");
         }
     });
 
