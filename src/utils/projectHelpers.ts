@@ -45,3 +45,51 @@ export function getAvailableProjects(): Project[] {
 
     return list;
 }
+
+export function renderMarkdownToHtml(markdown: string | undefined): string {
+    if (!markdown) return "";
+    let html = markdown;
+
+    // Escape raw HTML tags to prevent HTML injection/XSS issues
+    html = html
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Code blocks
+    html = html.replace(/```([a-zA-Z0-9-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
+    });
+    html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+        return `<pre><code>${code.trim()}</code></pre>`;
+    });
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    // Headers
+    html = html.replace(/^### (.*?)$/gm, "<h3>$1</h3>");
+    html = html.replace(/^## (.*?)$/gm, "<h4>$1</h4>");
+    html = html.replace(/^# (.*?)$/gm, "<h5>$1</h5>");
+
+    // Bold
+    html = html.replace(/\*\*([\s\S]*?)\*\*/g, "<strong>$1</strong>");
+
+    // Unordered lists
+    html = html.replace(/^\s*[-*]\s+(.*?)$/gm, "<li>$1</li>");
+    // Wrap consecutive list items in <ul>
+    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, "<ul>$1</ul>");
+    html = html.replace(/<\/ul>\s*<ul>/g, "");
+
+    // Paragraphs
+    const blocks = html.split(/\n{2,}/);
+    html = blocks.map(block => {
+        if (block.startsWith("<pre>") || block.startsWith("<h3>") || block.startsWith("<h4>") || block.startsWith("<h5>") || block.startsWith("<ul>") || block.startsWith("<li>")) {
+            return block;
+        }
+        return `<p>${block.replace(/\n/g, "<br>")}</p>`;
+    }).join("");
+
+    return html;
+}
+
