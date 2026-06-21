@@ -1440,6 +1440,9 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         if (aiSettingsDrawer) {
             aiSettingsDrawer.classList.remove("open");
         }
+        
+        // Re-render chat welcoming flow if key just changed
+        initChatHistory();
     }
 
     function updateProviderSectionsVisibility() {
@@ -1490,12 +1493,41 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         return indicatorDiv;
     }
 
+    function hasActiveApiKeyConfigured() {
+        const provider = localStorage.getItem("archbench_ai_provider") || "gemini";
+        if (provider === "gemini") {
+            return !!(localStorage.getItem("archbench_gemini_key") || "").trim();
+        } else if (provider === "openai") {
+            return !!(localStorage.getItem("archbench_openai_key") || "").trim();
+        }
+        return true; // Ollama does not require local keys
+    }
+
     function initChatHistory() {
         if (!aiChatHistory) return;
         aiChatHistory.innerHTML = "";
         chatHistoryLog = [];
         
-        appendMessage("system", "Welcome to the AI System Architect! Configure your LLM under Settings, click a template shortcut below, or ask a custom question about this architecture spec.");
+        if (!hasActiveApiKeyConfigured()) {
+            const setupCard = document.createElement("div");
+            setupCard.className = "ai-setup-card";
+            setupCard.innerHTML = `
+                <div class="ai-setup-icon">🔑</div>
+                <div class="ai-setup-title">Setup API Key Required</div>
+                <div class="ai-setup-text">Real-time system analysis requires an active LLM API Key. Google Gemini and OpenAI are supported client-side. Keys are stored safely in local storage.</div>
+                <button class="ai-setup-btn" id="btn-chat-trigger-settings">⚙️ Configure LLM Settings</button>
+            `;
+            aiChatHistory.appendChild(setupCard);
+            
+            const triggerSettingsBtn = setupCard.querySelector("#btn-chat-trigger-settings");
+            if (triggerSettingsBtn) {
+                triggerSettingsBtn.addEventListener("click", () => {
+                    if (aiSettingsDrawer) aiSettingsDrawer.classList.add("open");
+                });
+            }
+        } else {
+            appendMessage("system", "Welcome to the AI System Architect! Configure your LLM under Settings, click a template shortcut below, or ask a question about your architecture.");
+        }
     }
 
     // Populate the template chips at the bottom of the chat panel
@@ -1517,6 +1549,11 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
 
     // Call API endpoints
     async function sendChatMessage(promptText, displayQuery = null) {
+        if (!hasActiveApiKeyConfigured()) {
+            appendMessage("error", "⚠️ API Key is missing. Please click 'Settings' at the top of the AI panel to configure your Google Gemini or OpenAI credentials.");
+            return;
+        }
+
         const queryToDisplay = displayQuery || (promptText.length > 80 ? promptText.substring(0, 80) + "..." : promptText);
         
         // Add user bubble

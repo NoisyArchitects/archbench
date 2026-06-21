@@ -1680,6 +1680,78 @@ body:has(.flow-playback.hidden) .viewport {
     40% { transform: scale(1); opacity: 1; }
 }
 
+/* AI Chat Setup Welcome Card */
+.ai-setup-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 8px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.ai-setup-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+
+.ai-setup-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: hsl(280, 85%, 85%);
+    margin-bottom: 4px;
+}
+
+.ai-setup-text {
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.ai-setup-btn {
+    background: linear-gradient(135deg, hsl(270, 60%, 50%), hsl(300, 60%, 45%));
+    border: none;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 0.2s;
+    font-family: inherit;
+}
+
+.ai-setup-btn:hover {
+    filter: brightness(1.15);
+}
+
+/* Typing input styling fixes */
+.ai-chat-input {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 8px 10px !important;
+    line-height: 1.4;
+}
+
+.ai-chat-input:focus {
+    border-color: rgba(180, 130, 255, 0.5) !important;
+    box-shadow: 0 0 0 2px rgba(180, 130, 255, 0.15) !important;
+}
+
+.ai-input-container {
+    background: rgba(15, 18, 32, 0.98) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
 
 
 
