@@ -28,8 +28,18 @@
         note: "Decryption, persistence & intelligence execute inside this zone"
     };
 
-    // ─── Project Loading (Dynamic configuration from window.ARCHBENCH_PROJECT) ───
-    const project = window.ARCHBENCH_PROJECT || { title: "Untitled Project", version: "1.0", nodes: [], connections: [], flows: [] };
+    // ─── Project Loading (Dynamic configuration from window.ARCHBENCH_PROJECT_MD or window.ARCHBENCH_PROJECT) ───
+    let project = { title: "Untitled Project", version: "1.0", nodes: [], connections: [], flows: [] };
+    if (window.ARCHBENCH_PROJECT_MD) {
+        try {
+            project = parseMarkdownToProject(window.ARCHBENCH_PROJECT_MD);
+            project.id = "trace-sample";
+        } catch (e) {
+            console.error("Failed to parse window.ARCHBENCH_PROJECT_MD:", e);
+        }
+    } else if (window.ARCHBENCH_PROJECT) {
+        project = window.ARCHBENCH_PROJECT;
+    }
     let currentProject = null;
     let NODES = [];
     let CONNECTIONS = [];
@@ -3235,14 +3245,14 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         const projectData = {
             title: "Untitled Project",
             version: "1.0",
+            description: "",
             nodes: [],
             connections: [],
             flows: [],
-            layers: null,
-            trustBoundary: null
+            layers: null
         };
 
-        let currentSection = ""; // "metadata", "layers", "trust_boundary", "nodes", "connections", "flows"
+        let currentSection = ""; // "metadata", "description", "layers", "trust_boundary", "nodes", "connections", "flows"
         let currentNode = null;
         let currentFlow = null;
 
@@ -3260,7 +3270,9 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
             // Subsections headers
             if (line.startsWith("## ")) {
                 const secName = line.substring(3).trim().toLowerCase();
-                if (secName.includes("layer")) {
+                if (secName.includes("description")) {
+                    currentSection = "description";
+                } else if (secName.includes("layer")) {
                     currentSection = "layers";
                     projectData.layers = [];
                 } else if (secName.includes("boundary")) {
@@ -3279,6 +3291,15 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
             }
 
             // Parser logic per section
+            if (currentSection === "description") {
+                if (projectData.description) {
+                    projectData.description += "\n" + line;
+                } else {
+                    projectData.description = line;
+                }
+                continue;
+            }
+
             if (currentSection === "metadata") {
                 if (line.toLowerCase().startsWith("version:")) {
                     projectData.version = line.split(":")[1].trim();
@@ -3452,6 +3473,9 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
     function exportProjectToMarkdown(proj) {
         let md = `# ${proj.title || "Untitled Project"}\n`;
         md += `Version: ${proj.version || "1.0"}\n\n`;
+        if (proj.description) {
+            md += `## Description\n${proj.description}\n\n`;
+        }
 
         if (proj.layers && proj.layers.length > 0) {
             md += `## Layers\n`;
@@ -3785,6 +3809,7 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
             const spec = {
                 title: proj.title,
                 version: proj.version,
+                description: proj.description || undefined,
                 nodes: proj.nodes || [],
                 connections: proj.connections || [],
                 flows: proj.flows || [],

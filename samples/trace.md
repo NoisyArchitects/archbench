@@ -146,19 +146,84 @@ Central registry, visual encoding engine, and decentralized verification logs fo
 8. **consumer** [Show Verification screen]: Consumer PWA displays authenticity confirmation, batch history, and product digital twin.
    * Data: 📱 Verified screen
 
-### brand-onboard (Brand Portal Onboarding)
-*How a brand creates and registers products.*
+### product-generation (Product Generation)
+*How does a brand create TRACE-protected products?*
 - **Color:** hsl(260,70%,65%)
 
-1. **brand** [Create Product Profile]: Brand manager fills out product details (name, origin, photos).
-   * Data: 📝 Product Registry details
-2. **backend** [Register product]: Backend generates unique identities and registers them.
-   * Data: 🖥️ Registration payload
-3. **database** [Save registry]: Database commits product digital twin.
-   * Data: 🗄️ Registry Commit
-4. **brand** [Request TRACE Marks]: Brand manager requests single or bulk TRACE Marks.
-   * Data: 📦 Count of marks requested
-5. **engine** [Generate Mark Payloads]: Engine encodes secure identity keys into TRACE Marks.
-   * Data: 🔒 Generated print vector marks
-6. **brand** [Download vectors]: Portal downloads the marks for printing.
-   * Data: 🏢 SVG Print Files
+1. **brand** [Brand creates a product entry]: Through the Brand Portal, the manufacturer registers a new product. This initializes the metadata for the product entry.
+   * Data: 📝 Product Details & Batch Specs
+2. **engine** [TRACE Engine encrypts & encodes mark]: Unique TRACE IDs are encrypted using secure cryptographic keys and encoded into the proprietary visual TRACE Mark. The raw ID is never stored in the visual pattern.
+   * Data: 🔒 Encrypted Payload → Visual TRACE Mark Assets
+3. **database** [Product registered in database]: The product record is persisted in the database registry as 'Generated', mapping the unique TRACE ID to the manufacturer and batch.
+   * Data: 💾 TRACE ID assigned → Database Registry
+4. **activation** [Marks queued for Activation]: The generated TRACE Marks are sent to factory printing queues and the Activation System, ready to be printed and scanned during manufacturing.
+   * Data: 📋 Mark print queue initialized
+
+### activation (Product Activation)
+*How are manufactured products activated into the ecosystem?*
+- **Color:** hsl(32,85%,58%)
+
+1. **brand** [Brand initiates activation]: After printing TRACE Marks on product packaging, the brand triggers the activation workflow for the manufactured batch.
+   * Data: 📋 Batch of products ready for activation
+2. **activation** [Products scanned at factory]: Using factory scanners or mobile apps, the physical TRACE Marks are scanned. This proves the code was printed and applied to a physical product.
+   * Data: 📷 Factory scan of TRACE Mark
+3. **backend** [Backend validates activation]: The Verification Backend validates the request inside the secure boundary, checking cryptographic integrity and ensuring the ID has not been previously activated.
+   * Data: ✅ Validation check completed
+4. **database** [Registry updated with active identity]: The product's status is updated to 'Active' in the Database's Identity Registry. Timestamp, batch details, and activation metadata are logged to complete its digital twin.
+   * Data: 💾 Status: Generated → Active (Identity Registry Updated)
+
+### counterfeit-detection (Counterfeit Detection)
+*How does TRACE detect counterfeit activity?*
+- **Color:** hsl(0,72%,62%)
+
+1. **analytics** [Behavioral patterns analyzed]: The Analytics Engine continuously monitors scan patterns across all products, building behavioral profiles and scan baselines.
+   * Data: 📊 Baseline patterns for all products
+2. **database** [Historical scan data queried]: The engine queries the database for historical logs, tracking location clusters and scan velocity trends.
+   * Data: 🔍 Historical Scan Data Loaded
+3. **analytics** [Anomaly detected & risk scored]: The Analytics Engine detects high-risk anomaly (e.g. Mumbai & Delhi scans within 30 minutes). It calculates a critical risk score based on geo-velocity heuristics.
+   * Data: 🔴 Risk Score: 94/100 (High Counterfeit Probability)
+4. **backend** [Backend routes threat trigger]: The Verification Backend receives the high-risk alert event from Analytics and triggers immediate threat mitigation rules & notification webhooks.
+   * Data: ⚠️ Threat Alert Broadcast
+5. **brand** [Brand alerted via portal]: The brand is instantly notified via the Brand Portal dashboard, showing suspicious locations, timestamps, and product batch ID.
+   * Data: 🚨 Alert: Suspected counterfeit activity detected
+
+### analytics-flow (Analytics Pipeline)
+*How does scan data become intelligence?*
+- **Color:** hsl(48,82%,55%)
+
+1. **consumer** [Consumer scans product]: Every consumer scan generates a rich metadata event — not just the scan result, but location, device info, timestamp, and behavioral signals.
+   * Data: 📱 Scan event with metadata
+2. **backend** [Backend processes verification]: While processing the verification request, the backend packages scan metadata into an analytics event for downstream processing.
+   * Data: 📦 Scan metadata packaged
+3. **analytics** [Analytics Engine ingests event]: The scan event is ingested by the Analytics Engine — enriched with geo-data, device classification, and time-series context.
+   * Data: 📊 Event enriched with context
+4. **database** [Event stored and indexed]: The enriched event is stored in the scan event log and indexed for real-time querying. Historical patterns are updated.
+   * Data: 💾 Indexed in scan event log
+5. **analytics** [Intelligence outputs generated]: Aggregated data produces actionable outputs — risk scores per product, regional trends, scan velocity reports, and suspicious activity alerts.
+   * Data: 📈 Risk Scores, Trends, Alerts → Brand Dashboard
+6. **brand** [Insights available on dashboard]: Manufacturers see real-time analytics on the Brand Portal — scan maps, product activity timelines, counterfeit probability heat maps, and regional trends.
+   * Data: 📊 Dashboard: Maps, Timelines, Heat Maps
+
+### registration-flow (Product Registration)
+- **Color:** hsl(310,65%,62%)
+
+1. **brand** [Brand registers product details]: The manufacturer inputs product metadata, SKU details, and batch size through the Brand Portal.
+   * Data: 📝 Product Profile & Batch Metadata
+2. **backend** [Backend validates registration]: The Verification Backend verifies the request credentials, checks for naming collisions, and authorizes the registration.
+   * Data: 🔑 Verification Backend Authorization
+3. **database** [Identity registry record written]: The Database creates the authoritative registry entries, generating a unique TRACE ID mapping and establishing the initial digital twin status.
+   * Data: 💾 TRACE ID Assigned & Status = Registered
+4. **brand** [Product ready for mark generation]: The Brand Portal displays the successful registration. The product batch is now cleared for generating visual TRACE Marks.
+   * Data: ✅ Status: Registered → Ready for Mark Generation
+
+### ownership-flow (Ownership Flow)
+- **Color:** hsl(310,65%,62%)
+
+1. **consumer** [Consumer claims ownership]: Upon successful verification, the consumer opts to claim the product via the PWA, binding the physical unit to their profile.
+   * Data: 👤 Consumer ID & TRACE ID Pairing Request
+2. **backend** [Backend validates claim]: The Verification Backend validates the request—confirming the product's active status and ensuring it is not already claimed.
+   * Data: 🔒 Ownership Eligibility Verified
+3. **database** [Ownership saved to registry]: The Database updates the product registry schema, writing the consumer ownership mapping to complete the lifecycle record.
+   * Data: 💾 Database Registry Status: Owned
+4. **future** [Future: Secure peer-to-peer transfer]: Future Roadmap capability: cryptographic transfer protocols enabling secondary market proof-of-ownership updates.
+   * Data: 🔮 Future Secure P2P Ownership Exchange
