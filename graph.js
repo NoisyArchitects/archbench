@@ -17,15 +17,17 @@ import { localHistoryCache, initDB, reloadHistoryCache, saveAuditRun, deleteAudi
 import { initAIEngine, populateAIGrid } from "./js/ai-engine.js";
 import { updateArchitectureHistoryUI } from "./js/history-ui.js";
 import { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLogMarkdown } from "./js/batch-runner.js";
+import { initFlowEngine, startFlow, exitFlow, stopAutoPlay, renderFlowStep, activeFlow, activeStep, setActiveFlow, setActiveStep } from "./js/flow-engine.js";
 
 export { localHistoryCache, initDB, reloadHistoryCache, saveAuditRun, deleteAuditRun, clearProjectHistoryFromDB, updateArchitectureHistoryUI };
 export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLogMarkdown };
+export { initFlowEngine, startFlow, exitFlow, stopAutoPlay, renderFlowStep, activeFlow, activeStep, setActiveFlow, setActiveStep };
 
     // ─── Layer Zones & Boundaries (Project-specific layout state) ────────────────
 
     let LAYERS = [];
     let TRUST_BOUNDARY = null;
-    let trustEl = null;
+    export let trustEl = null;
 
     const DEFAULT_LAYERS = [
         { id: "entry",    label: "Entry Points — User-Facing Applications",  y: 150,  h: 420,  cls: "entry" },
@@ -111,16 +113,10 @@ export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLog
     let isPanning = false, spacePressed = false;
     let panStartX, panStartY, panStartPanX, panStartPanY;
 
-    const nodeEls  = {};
+    export const nodeEls  = {};
     const nodeData = {};
 
-    // Flow state
-    export let activeFlow    = null;
-    export let activeStep    = -1;
-    export function setActiveFlow(val) { activeFlow = val; }
-    export function setActiveStep(val) { activeStep = val; }
-    let isAutoPlaying = false;
-    let autoTimer     = null;
+    // Flow state is now managed inside js/flow-engine.js
 
     // Panel Float/Drag/Dock State
     let panelPosition = null; // { x, y }
@@ -232,7 +228,7 @@ export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLog
         return { d: `M ${s.x} ${s.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${e.x} ${e.y}`, c1, c2 };
     }
 
-    function drawConnections() {
+    export function drawConnections() {
         svgLayer.innerHTML = "";
         const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
         svgLayer.appendChild(defs);
@@ -438,7 +434,7 @@ export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLog
         applyTransform();
     }
 
-    function panToNode(nid, anim) {
+    export function panToNode(nid, anim) {
         const d = nodeData[nid];
         if (!d) return;
         const vr = viewport.getBoundingClientRect();
@@ -482,250 +478,10 @@ export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLog
 
 
     // ─────────────────────────────────────────────────────────────
-    // ─── FLOW SIMULATOR ─────────────────────────────────────────
-    // ─────────────────────────────────────────────────────────────
-
-
-
-    function startFlow(flowId) {
-        unifiedBatchLog = null;
-        const flow = FLOWS.find(f => f.id === flowId);
-        if (!flow) return;
-
-        // Stop any auto play
-        stopAutoPlay();
-
-        // Set active flow
-        activeFlow = flow;
-        activeStep = 0;
-
-        // Update flow bar button states
-        document.querySelectorAll(".flow-btn").forEach(b => {
-            b.classList.toggle("active", b.dataset.flow === flowId);
-        });
-
-        // Expand sidebar and switch to simulator tab
-        flowPanel.classList.remove("collapsed", "hidden");
-        switchTab("simulator");
-
-        // Hide help hint and legend during flow
-        if (helpHint) helpHint.style.display = "none";
-
-        // Render first step
-        renderFlowStep();
-    }
-
-    export function exitFlow() {
-        stopAutoPlay();
-        activeFlow = null;
-        activeStep = -1;
-
-        // Reset button states
-        document.querySelectorAll(".flow-btn").forEach(b => b.classList.remove("active"));
-
-        // Clear all flow states from nodes
-        Object.values(nodeEls).forEach(el => {
-            el.classList.remove("flow-dimmed", "flow-active", "flow-current", "flow-completed");
-        });
-
-        // Clear step badges
-        NODES.forEach(n => {
-            const badge = document.getElementById(`badge-${n.id}`);
-            if (badge) { badge.classList.remove("visible","current"); badge.textContent = ""; }
-        });
-
-        // Reset trust boundary
-        if (trustEl) trustEl.classList.remove("flow-highlight");
-
-        // Reset connection states
-        clearFlowConnections();
-
-        // Redraw connections clean
-        drawConnections();
-
-        // Reset panel to Simulator tab if not batch log reviewing
-        if (!unifiedBatchLog && typeof switchTab === "function") switchTab("simulator");
-    }
-
-    function nextStep() {
-        if (!activeFlow) return;
-        if (activeStep < activeFlow.steps.length - 1) {
-            activeStep++;
-            renderFlowStep();
-        } else if (isAutoPlaying) {
-            stopAutoPlay();
-        }
-    }
-
-    function prevStep() {
-        if (!activeFlow || activeStep <= 0) return;
-        activeStep--;
-        renderFlowStep();
-    }
-
-    function toggleAutoPlay() {
-        if (isAutoPlaying) {
-            stopAutoPlay();
-        } else {
-            isAutoPlaying = true;
-            fpPlay.classList.add("playing");
-            fpPlay.querySelector(".play-icon").style.display = "none";
-            fpPlay.querySelector(".pause-icon").style.display = "block";
-            autoAdvance();
-        }
-    }
-
-    export function stopAutoPlay() {
-        isAutoPlaying = false;
-        if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
-        fpPlay.classList.remove("playing");
-        fpPlay.querySelector(".play-icon").style.display = "block";
-        fpPlay.querySelector(".pause-icon").style.display = "none";
-    }
-
-    function autoAdvance() {
-        if (!isAutoPlaying || !activeFlow) return;
-        autoTimer = setTimeout(() => {
-            if (activeStep < activeFlow.steps.length - 1) {
-                activeStep++;
-                renderFlowStep();
-                autoAdvance();
-            } else {
-                stopAutoPlay();
-            }
-        }, 2800);
-    }
-
-    export function renderFlowStep() {
-        if (!activeFlow) return;
-        const flow = activeFlow;
-        const step = flow.steps[activeStep];
-        const totalSteps = flow.steps.length;
-
-        // ── Update playback panel ──
-        fpBadge.textContent = activeStep + 1;
-        fpBadge.style.background = `linear-gradient(135deg, ${flow.color}, color-mix(in srgb, ${flow.color} 70%, white))`;
-        fpLabel.textContent = step.label;
-        fpDetail.textContent = step.detail;
-        fpCounter.textContent = `${activeStep + 1} / ${totalSteps}`;
-        fpProgress.style.width = ((activeStep + 1) / totalSteps * 100) + "%";
-
-        if (step.data) {
-            fpData.textContent = step.data;
-            fpData.classList.add("visible");
-        } else {
-            fpData.classList.remove("visible");
-        }
-
-        // Button states
-        fpPrev.disabled = activeStep === 0;
-        fpNext.disabled = activeStep === totalSteps - 1;
-
-        // ── Collect nodes in this flow ──
-        const flowNodeIds = [...new Set(flow.steps.map(s => s.node))];
-
-        // ── Apply node states ──
-        NODES.forEach(n => {
-            const el = nodeEls[n.id];
-            const badge = document.getElementById(`badge-${n.id}`);
-            const isInFlow = flowNodeIds.includes(n.id);
-
-            // Reset
-            el.classList.remove("flow-dimmed", "flow-active", "flow-current", "flow-completed");
-            badge.classList.remove("visible", "current");
-            badge.textContent = "";
-
-            if (!isInFlow) {
-                el.classList.add("flow-dimmed");
-                return;
-            }
-
-            // Find this node's step indices in the flow
-            const nodeSteps = [];
-            flow.steps.forEach((s, i) => { if (s.node === n.id) nodeSteps.push(i); });
-
-            // Find the relevant step for this node relative to current
-            const activeNodeStep = nodeSteps.filter(i => i <= activeStep);
-            const futureNodeStep = nodeSteps.filter(i => i > activeStep);
-
-            if (activeNodeStep.length > 0) {
-                const lastActiveIdx = activeNodeStep[activeNodeStep.length - 1];
-                if (lastActiveIdx === activeStep) {
-                    el.classList.add("flow-current");
-                    badge.textContent = lastActiveIdx + 1;
-                    badge.style.background = `linear-gradient(135deg, ${n.color}, color-mix(in srgb, ${n.color} 60%, white))`;
-                    badge.classList.add("visible", "current");
-                } else {
-                    el.classList.add("flow-active", "flow-completed");
-                    badge.textContent = lastActiveIdx + 1;
-                    badge.style.background = n.color;
-                    badge.classList.add("visible");
-                }
-            } else {
-                // Future step — show as active but not yet reached
-                el.classList.add("flow-active");
-                el.style.opacity = "0.4";
-                setTimeout(() => { if (el.classList.contains("flow-active")) el.style.opacity = ""; }, 10);
-            }
-        });
-
-        // ── Apply connection states ──
-        applyFlowToConnections();
-
-        // ── Trust boundary highlight ──
-        if (trustEl) trustEl.classList.toggle("flow-highlight", !!step.trustHighlight);
-
-        // ── Pan camera to current node ──
-        panToNode(step.node, true);
-
-        // ── Update active execution log in background ──
-        if (typeof updateExecutionLogUI === "function") updateExecutionLogUI();
-    }
-
-    function applyFlowToConnections() {
-        if (!activeFlow) return;
-        const flow = activeFlow;
-
-        // Build list of active edges: consecutive steps form edges
-        const activeEdges = [];
-        const prevEdges = [];
-        for (let i = 0; i < activeStep; i++) {
-            prevEdges.push([flow.steps[i].node, flow.steps[i+1].node]);
-        }
-        if (activeStep > 0) {
-            activeEdges.push([flow.steps[activeStep-1].node, flow.steps[activeStep].node]);
-        }
-
-        svgLayer.querySelectorAll(".conn-line,.conn-arrow,.conn-label,.conn-dot").forEach(el => {
-            const f = el.dataset.from, t = el.dataset.to;
-
-            // Check if this connection matches any flow edge (in either direction)
-            const isActive = activeEdges.some(([a,b]) => (f===a&&t===b)||(f===b&&t===a));
-            const isPrev   = prevEdges.some(([a,b]) => (f===a&&t===b)||(f===b&&t===a));
-
-            el.classList.remove("flow-dimmed","flow-active","flow-active-prev");
-
-            if (isActive) {
-                el.classList.add("flow-active");
-            } else if (isPrev) {
-                el.classList.add("flow-active-prev");
-            } else {
-                el.classList.add("flow-dimmed");
-            }
-        });
-    }
-
-    function clearFlowConnections() {
-        svgLayer.querySelectorAll(".conn-line,.conn-arrow,.conn-label,.conn-dot").forEach(el => {
-            el.classList.remove("flow-dimmed","flow-active","flow-active-prev");
-        });
-    }
+    // Flow Simulator playback engine moved to js/flow-engine.js
 
     // Flow control event listeners
-    fpClose.addEventListener("click", exitFlow);
-    fpPrev.addEventListener("click", prevStep);
-    fpNext.addEventListener("click", nextStep);
-    fpPlay.addEventListener("click", toggleAutoPlay);
+
 
     // Draggable header logic
     fpHeader.addEventListener("mousedown", startDragPanel);
@@ -2666,6 +2422,7 @@ export { initBatchRunner, populateBatchChecklist, stopBatchRun, generateBatchLog
     startupProjectSystem();
     initAIEngine();
     initBatchRunner();
+    initFlowEngine();
 
     setTimeout(() => {
         reloadHistoryCache().catch(err => console.error("Could not load history on startup:", err));
