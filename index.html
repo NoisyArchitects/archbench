@@ -105,7 +105,7 @@
     </div>
 
     <!-- Flow Playback Panel -->
-    <div class="flow-playback" id="flow-playback">
+    <div class="flow-playback dock-right" id="flow-playback">
         <div class="fp-header" id="fp-header">
             <div class="fp-title-area">
                 <span class="fp-title" id="fp-title"></span>
@@ -128,20 +128,20 @@
                 </button>
             </div>
         </div>
-        <!-- Tabs Bar -->
+        <!-- Tabs Bar (VS Code style Activity Bar) -->
         <div class="fp-tabs" id="fp-tabs">
-            <button class="fp-tab active" id="tab-btn-simulator">Simulator</button>
-            <button class="fp-tab" id="tab-btn-batch">Flow Checklist</button>
-            <button class="fp-tab" id="tab-btn-log">Execution Log</button>
-            <button class="fp-tab" id="tab-btn-health">Architecture Health</button>
-            <button class="fp-tab" id="tab-btn-history">Architecture History</button>
-            <button class="fp-tab" id="tab-btn-ai">AI Analysis</button>
-            <button class="fp-tab" id="tab-btn-pack">Knowledge Pack</button>
-            <button class="fp-tab" id="tab-btn-terminal">Terminal</button>
+            <button class="fp-tab active" id="tab-btn-ai" title="AI System Architect (🧠)">🧠</button>
+            <button class="fp-tab" id="tab-btn-simulator" title="Trace Flow Simulator (⚡)">⚡</button>
+            <button class="fp-tab" id="tab-btn-batch" title="Flow Checklist & Audit (📋)">📋</button>
+            <button class="fp-tab" id="tab-btn-log" title="Simulation Execution Log (📝)">📝</button>
+            <button class="fp-tab" id="tab-btn-health" title="Architecture Health Report (🩺)">🩺</button>
+            <button class="fp-tab" id="tab-btn-history" title="Simulation History Index (⏳)">⏳</button>
+            <button class="fp-tab" id="tab-btn-pack" title="Markdown Knowledge Pack (📦)">📦</button>
+            <button class="fp-tab" id="tab-btn-terminal" title="Project Terminal Shell (💻)">💻</button>
         </div>
 
         <!-- 1. Simulator Panel -->
-        <div class="fp-tab-panel active" id="panel-simulator">
+        <div class="fp-tab-panel" id="panel-simulator">
             <div class="fp-progress-track">
                 <div class="fp-progress-fill" id="fp-progress-fill"></div>
             </div>
@@ -184,7 +184,7 @@
         </div>
 
         <!-- 3. AI Analysis Panel -->
-        <div class="fp-tab-panel" id="panel-ai">
+        <div class="fp-tab-panel active" id="panel-ai">
             <div class="ai-chat-header">
                 <span class="ai-chat-title">AI System Architect</span>
                 <div class="ai-chat-header-actions">

@@ -389,35 +389,95 @@ html, body {
 .flow-playback {
     position: fixed;
     z-index: 180;
-    width: 520px;
-    max-width: calc(100vw - 40px);
-    border-radius: 16px;
-    background: rgba(10,12,22,0.94);
+    top: var(--total-header) !important;
+    bottom: 0 !important;
+    height: calc(100vh - var(--total-header)) !important;
+    background: rgba(10,12,22,0.96);
     backdrop-filter: blur(24px) saturate(1.5);
     -webkit-backdrop-filter: blur(24px) saturate(1.5);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 16px 60px rgba(0,0,0,0.5);
-    display: none; /* hidden until flow starts */
-    flex-direction: column;
+    box-shadow: -8px 0 40px rgba(0,0,0,0.55);
+    display: grid !important; /* Force grid layout */
+    grid-template-rows: 54px 1fr;
     overflow: hidden;
-    transition: opacity 0.3s ease, width 0.3s ease, border-radius 0.3s ease, height 0.3s ease;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), left 0.3s ease, right 0.3s ease, opacity 0.3s ease;
+    border-radius: 0 !important; /* Sidebars have straight edges */
 }
-.flow-playback.visible { display: flex; }
-.flow-playback.is-dragging {
-    box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 15px rgba(100,120,255,0.15);
-    border-color: rgba(255,255,255,0.14);
+
+/* Collapsed/Hidden states */
+.flow-playback.hidden {
+    width: 0px !important;
+    opacity: 0 !important;
+    border: none !important;
+    pointer-events: none;
+}
+
+/* Dock Right (Default) */
+.flow-playback.dock-right {
+    right: 0 !important;
+    left: auto !important;
+    width: 400px;
+    grid-template-columns: 48px 1fr;
+    grid-template-areas: 
+        "tabs header"
+        "tabs panels";
+    border-left: 1px solid rgba(255,255,255,0.08);
+}
+.flow-playback.dock-right.collapsed {
+    width: 48px;
+    grid-template-columns: 48px 0;
+    border-left: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Dock Left */
+.flow-playback.dock-left {
+    left: 0 !important;
+    right: auto !important;
+    width: 400px;
+    grid-template-columns: 48px 1fr;
+    grid-template-areas: 
+        "tabs header"
+        "tabs panels";
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+.flow-playback.dock-left.collapsed {
+    width: 48px;
+    grid-template-columns: 48px 0;
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Viewport dynamic push layout */
+.viewport {
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1), right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body:has(.flow-playback.dock-right:not(.collapsed):not(.hidden)) .viewport {
+    right: 400px !important;
+}
+body:has(.flow-playback.dock-right.collapsed:not(.hidden)) .viewport {
+    right: 48px !important;
+}
+body:has(.flow-playback.dock-left:not(.collapsed):not(.hidden)) .viewport {
+    left: 400px !important;
+}
+body:has(.flow-playback.dock-left.collapsed:not(.hidden)) .viewport {
+    left: 48px !important;
+}
+body:has(.flow-playback.hidden) .viewport {
+    left: 0 !important;
+    right: 0 !important;
 }
 
 .fp-header {
+    grid-area: header;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 18px 10px;
-    cursor: grab;
-    user-select: none;
-}
-.fp-header:active {
-    cursor: grabbing;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(15, 18, 32, 0.4);
+    height: 54px;
+    box-sizing: border-box;
+    cursor: default !important; /* Non-draggable */
 }
 
 .fp-header-actions {
@@ -427,10 +487,10 @@ html, body {
 }
 
 .fp-action-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.04);
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     color: var(--text-muted);
     cursor: pointer;
@@ -440,70 +500,25 @@ html, body {
     transition: all 0.2s ease;
 }
 .fp-action-btn:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.08);
     color: var(--text-primary);
-    border-color: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.1);
 }
 
 .fp-actions-divider {
     width: 1px;
-    height: 16px;
+    height: 14px;
     background: rgba(255,255,255,0.06);
     margin: 0 2px;
 }
 
 .fp-close-btn {
-    width: 28px; height: 28px; border-radius: 8px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    width: 26px; height: 26px; border-radius: 6px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
     color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.2s ease;
 }
 .fp-close-btn:hover { background: rgba(255,80,80,0.15); color: hsl(0,80%,70%); border-color: rgba(255,80,80,0.2); }
-
-/* ── Future-ready Layout States ──────────────────────────────── */
-
-.flow-playback.minimized {
-    width: 340px !important;
-}
-.flow-playback.minimized .fp-progress-track,
-.flow-playback.minimized .fp-body,
-.flow-playback.minimized .fp-controls {
-    display: none !important;
-}
-
-.flow-playback.dock-left {
-    left: 0 !important;
-    top: var(--total-header) !important;
-    bottom: 0 !important;
-    height: calc(100vh - var(--total-header)) !important;
-    width: 380px !important;
-    border-radius: 0 16px 16px 0 !important;
-    border-left: none !important;
-    box-shadow: 8px 0 40px rgba(0,0,0,0.4);
-}
-
-.flow-playback.dock-right {
-    right: 0 !important;
-    left: auto !important;
-    top: var(--total-header) !important;
-    bottom: 0 !important;
-    height: calc(100vh - var(--total-header)) !important;
-    width: 380px !important;
-    border-radius: 16px 0 0 16px !important;
-    border-right: none !important;
-    box-shadow: -8px 0 40px rgba(0,0,0,0.4);
-}
-
-.flow-playback.fullscreen {
-    left: 16px !important;
-    top: calc(var(--total-header) + 16px) !important;
-    right: 16px !important;
-    bottom: 16px !important;
-    width: auto !important;
-    height: auto !important;
-    max-width: none !important;
-    border-radius: 16px !important;
-}
 
 .fp-progress-track {
     height: 3px; background: rgba(255,255,255,0.04); margin: 0 18px;
@@ -631,42 +646,59 @@ html, body {
     .flow-bar { padding: 0 12px; gap: 10px; }
 }
 
-/* ── Floating Simulator Tabs & Control Panels ─────────────────── */
+/* ── Sidebar Tabs Activity Bar ─────────────────────────────────── */
 
 .fp-tabs {
+    grid-area: tabs;
     display: flex;
-    background: rgba(0,0,0,0.2);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 0 10px;
+    flex-direction: column;
+    background: rgba(8, 10, 16, 0.95);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 0;
+    gap: 8px;
+    align-items: center;
+    height: 100%;
+    box-sizing: border-box;
 }
 .fp-tab {
-    padding: 10px 14px;
+    width: 32px;
+    height: 32px;
     background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
     cursor: pointer;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
 }
 .fp-tab:hover {
+    background: rgba(255,255,255,0.04);
     color: var(--text-primary);
+    border-color: rgba(255,255,255,0.06);
 }
 .fp-tab.active {
-    color: hsl(220,90%,78%);
-    border-bottom-color: hsl(220,90%,65%);
+    background: rgba(180, 130, 255, 0.12);
+    color: hsl(280, 85%, 80%);
+    border-color: rgba(180, 130, 255, 0.25);
+    box-shadow: 0 0 10px rgba(180, 130, 255, 0.1);
 }
 
 .fp-tab-panel {
+    grid-area: panels;
     display: none;
     flex-direction: column;
     flex: 1;
     overflow-y: auto;
     padding: 18px;
-    min-height: 240px;
-    max-height: 380px;
+    min-height: 0;
+    max-height: none !important;
+    height: 100%;
+    box-sizing: border-box;
 }
 .fp-tab-panel.active {
     display: flex;

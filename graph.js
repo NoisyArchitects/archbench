@@ -111,7 +111,7 @@
     let panelPosition = null; // { x, y }
     let isPanelDragging = false;
     let dragStartX, dragStartY, dragStartLeft, dragStartTop;
-    let currentDockState = "float"; // float, left, right
+    let currentDockState = "right"; // float, left, right
     let isMinimized = false;
 
 
@@ -489,36 +489,9 @@
             b.classList.toggle("active", b.dataset.flow === flowId);
         });
 
-        // Show playback panel
-        flowPanel.classList.add("visible");
-        fpTitle.textContent = flow.title;
-        fpSubtitle.textContent = flow.subtitle;
-
-        // Position panel (persist or set default centered at bottom)
-        if (currentDockState === "float") {
-            // Temporarily set display to flex to measure offset dimensions accurately
-            const origDisplay = flowPanel.style.display;
-            flowPanel.style.display = "flex";
-            const rect = flowPanel.getBoundingClientRect();
-            flowPanel.style.display = origDisplay;
-
-            const w = rect.width || 520;
-            const h = rect.height || 180;
-
-            if (!panelPosition) {
-                panelPosition = {
-                    x: (window.innerWidth - w) / 2,
-                    y: window.innerHeight - h - 24
-                };
-            } else {
-                // Ensure boundaries remain valid (e.g. if window size changed)
-                panelPosition.x = Math.max(0, Math.min(window.innerWidth - w, panelPosition.x));
-                panelPosition.y = Math.max(0, Math.min(window.innerHeight - h, panelPosition.y));
-            }
-
-            flowPanel.style.left = panelPosition.x + "px";
-            flowPanel.style.top = panelPosition.y + "px";
-        }
+        // Expand sidebar and switch to simulator tab
+        flowPanel.classList.remove("collapsed", "hidden");
+        switchTab("simulator");
 
         // Hide help hint and legend during flow
         if (helpHint) helpHint.style.display = "none";
@@ -534,11 +507,6 @@
 
         // Reset button states
         document.querySelectorAll(".flow-btn").forEach(b => b.classList.remove("active"));
-
-        // Hide playback panel only if not showing a batch log
-        if (!unifiedBatchLog) {
-            flowPanel.classList.remove("visible");
-        }
 
         // Clear all flow states from nodes
         Object.values(nodeEls).forEach(el => {
@@ -809,58 +777,36 @@
     // Minimize Control panel
     fpMinimize.addEventListener("click", () => {
         isMinimized = !isMinimized;
-        flowPanel.classList.toggle("minimized", isMinimized);
+        flowPanel.classList.toggle("collapsed", isMinimized);
 
         const minIcon = fpMinimize.querySelector(".minimize-icon");
         const restoreIcon = fpMinimize.querySelector(".restore-icon");
 
         if (isMinimized) {
-            minIcon.style.display = "none";
-            restoreIcon.style.display = "block";
-            fpMinimize.setAttribute("title", "Restore Control Panel");
+            if (minIcon) minIcon.style.display = "none";
+            if (restoreIcon) restoreIcon.style.display = "block";
+            fpMinimize.setAttribute("title", "Expand Sidebar");
         } else {
-            minIcon.style.display = "block";
-            restoreIcon.style.display = "none";
-            fpMinimize.setAttribute("title", "Minimize Control Panel");
+            if (minIcon) minIcon.style.display = "block";
+            if (restoreIcon) restoreIcon.style.display = "none";
+            fpMinimize.setAttribute("title", "Collapse Sidebar");
         }
 
-        // Adjust position bounds if height shrinking or expanding causes boundary overflow
-        if (currentDockState === "float" && panelPosition) {
-            // Give layout 10ms to paint height change
-            setTimeout(() => {
-                const h = flowPanel.offsetHeight;
-                panelPosition.y = Math.max(0, Math.min(window.innerHeight - h, panelPosition.y));
-                flowPanel.style.top = panelPosition.y + "px";
-            }, 50);
-        }
+        setTimeout(() => { updateMinimap(); }, 350);
     });
 
-    // Dock control panel: Float -> Dock Right -> Dock Left
+    // Cycle Sidebar Dock position: Right -> Left
     fpDock.addEventListener("click", () => {
-        if (currentDockState === "float") {
-            currentDockState = "right";
-            flowPanel.classList.add("dock-right");
-            flowPanel.classList.remove("dock-left");
-        } else if (currentDockState === "right") {
+        if (currentDockState === "right") {
             currentDockState = "left";
             flowPanel.classList.add("dock-left");
             flowPanel.classList.remove("dock-right");
         } else {
-            currentDockState = "float";
-            flowPanel.classList.remove("dock-left", "dock-right");
-
-            // Restore floating coordinates
-            if (panelPosition) {
-                const w = flowPanel.offsetWidth;
-                const h = flowPanel.offsetHeight;
-                panelPosition.x = Math.max(0, Math.min(window.innerWidth - w, panelPosition.x));
-                panelPosition.y = Math.max(0, Math.min(window.innerHeight - h, panelPosition.y));
-                flowPanel.style.left = panelPosition.x + "px";
-                flowPanel.style.top = panelPosition.y + "px";
-            }
+            currentDockState = "right";
+            flowPanel.classList.add("dock-right");
+            flowPanel.classList.remove("dock-left");
         }
-        // Force update map rendering / connections in case graph layout resized
-        setTimeout(() => { updateMinimap(); }, 200);
+        setTimeout(() => { updateMinimap(); }, 350);
     });
 
     // Adjust floating panel position when browser scales or resizes
@@ -1717,7 +1663,22 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
     const tabBtns = [tabBtnSimulator, tabBtnLog, tabBtnAi, tabBtnPack, tabBtnBatch, tabBtnHealth, tabBtnHistory, tabBtnTerminal];
     const panels = [panelSimulator, panelLog, panelAi, panelPack, panelBatch, panelHealth, panelHistory, panelTerminal];
 
+    let activeTabId = "ai"; // track active tab
+
     function switchTab(targetId) {
+        if (!flowPanel) return;
+
+        if (targetId === activeTabId && !flowPanel.classList.contains("collapsed")) {
+            // Clicking already active tab collapses the sidebar panel
+            flowPanel.classList.add("collapsed");
+            setTimeout(() => { updateMinimap(); }, 350);
+            return;
+        }
+
+        // Expand the sidebar panel
+        flowPanel.classList.remove("collapsed", "hidden");
+        activeTabId = targetId;
+
         tabBtns.forEach(btn => {
             if (btn) btn.classList.toggle("active", btn.id === `tab-btn-${targetId}`);
         });
@@ -1741,6 +1702,37 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         } else if (targetId === "terminal") {
             initTerminalOnce();
         }
+
+        // Adjust title and subtitle text dynamically to match active tab
+        if (fpTitle && fpSubtitle) {
+            if (targetId === "ai") {
+                fpTitle.textContent = "AI System Architect";
+                fpSubtitle.textContent = "Conversational copilot & reviews";
+            } else if (targetId === "simulator") {
+                fpTitle.textContent = activeFlow ? activeFlow.title : "Trace Flow Simulator";
+                fpSubtitle.textContent = activeFlow ? activeFlow.subtitle : "Step-by-step trace playback";
+            } else if (targetId === "batch") {
+                fpTitle.textContent = "Flow Checklist";
+                fpSubtitle.textContent = "Batch audits & health compilations";
+            } else if (targetId === "log") {
+                fpTitle.textContent = "Execution Log";
+                fpSubtitle.textContent = "Audit results & dynamic outputs";
+            } else if (targetId === "health") {
+                fpTitle.textContent = "Architecture Health";
+                fpSubtitle.textContent = "Structural analysis & telemetry indices";
+            } else if (targetId === "history") {
+                fpTitle.textContent = "Audit History";
+                fpSubtitle.textContent = "IndexedDB historical snapshots";
+            } else if (targetId === "pack") {
+                fpTitle.textContent = "Knowledge Pack";
+                fpSubtitle.textContent = "Markdown system description exports";
+            } else if (targetId === "terminal") {
+                fpTitle.textContent = "Project Shell Terminal";
+                fpSubtitle.textContent = "Workspace command line tool";
+            }
+        }
+        
+        setTimeout(() => { updateMinimap(); }, 350);
     }
 
     if (tabBtnSimulator) tabBtnSimulator.addEventListener("click", () => switchTab("simulator"));
@@ -1755,69 +1747,29 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
     if (btnTermToggle) {
         btnTermToggle.addEventListener("click", () => {
             stopAutoPlay();
-            flowPanel.classList.add("visible");
-
-            if (currentDockState === "float") {
-                const origDisplay = flowPanel.style.display;
-                flowPanel.style.display = "flex";
-                const rect = flowPanel.getBoundingClientRect();
-                flowPanel.style.display = origDisplay;
-
-                const w = rect.width || 520;
-                const h = rect.height || 380;
-
-                if (!panelPosition) {
-                    panelPosition = {
-                        x: (window.innerWidth - w) / 2,
-                        y: (window.innerHeight - h) / 2
-                    };
-                }
-                flowPanel.style.left = panelPosition.x + "px";
-                flowPanel.style.top = panelPosition.y + "px";
+            flowPanel.classList.remove("collapsed", "hidden");
+            // Switch to terminal tab (expand if collapsed)
+            if (activeTabId === "terminal" && flowPanel.classList.contains("collapsed")) {
+                flowPanel.classList.remove("collapsed");
+            } else {
+                switchTab("terminal");
             }
-
-            switchTab("terminal");
-            fpTitle.textContent = "Project Agent Terminal Shell";
         });
     }
 
-    // Topbar IDE action launcher
-    btnIde.addEventListener("click", () => {
-        // Stop autoplay
-        stopAutoPlay();
-
-        // Show panel
-        flowPanel.classList.add("visible");
-
-        // Center panel if float mode & not positioned yet
-        if (currentDockState === "float") {
-            const origDisplay = flowPanel.style.display;
-            flowPanel.style.display = "flex";
-            const rect = flowPanel.getBoundingClientRect();
-            flowPanel.style.display = origDisplay;
-
-            const w = rect.width || 520;
-            const h = rect.height || 380;
-
-            if (!panelPosition) {
-                panelPosition = {
-                    x: (window.innerWidth - w) / 2,
-                    y: (window.innerHeight - h) / 2
-                };
+    // Topbar IDE action launcher (AI Architect tab trigger)
+    if (btnIde) {
+        btnIde.addEventListener("click", () => {
+            stopAutoPlay();
+            flowPanel.classList.remove("collapsed", "hidden");
+            // Switch to AI tab (expand if collapsed)
+            if (activeTabId === "ai" && flowPanel.classList.contains("collapsed")) {
+                flowPanel.classList.remove("collapsed");
+            } else {
+                switchTab("ai");
             }
-            flowPanel.style.left = panelPosition.x + "px";
-            flowPanel.style.top = panelPosition.y + "px";
-        }
-
-        // Switch to Knowledge Pack tab
-        switchTab("pack");
-
-        // Change header text to context mode
-        fpTitle.textContent = "Architecture Knowledge Pack";
-        fpSubtitle.textContent = "Ecosystem Context & LLM Ingest Portal";
-
-        if (helpHint) helpHint.style.display = "none";
-    });
+        });
+    }
 
     // Wire up exports actions
     btnCopyLogJson.addEventListener("click", () => {
@@ -2041,10 +1993,9 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         activeFlow = flow;
         activeStep = 0;
         
-        // Show panel
-        flowPanel.classList.add("visible");
-        fpTitle.textContent = flow.title;
-        fpSubtitle.textContent = flow.subtitle;
+        // Show panel & switch to simulator tab
+        flowPanel.classList.remove("collapsed", "hidden");
+        switchTab("simulator");
         if (helpHint) helpHint.style.display = "none";
 
         document.getElementById("batch-status-msg").textContent = `Simulating: ${flow.title}...`;
@@ -4889,6 +4840,9 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         if (activeProj) {
             loadProject(activeProj);
         }
+        
+        // Initialize default sidebar tab and active headers on launch
+        switchTab("ai");
     }
 
     // ─── Attach Listeners ────────────────────────────────────────
