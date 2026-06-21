@@ -118,6 +118,11 @@ export { initFlowEngine, startFlow, exitFlow, stopAutoPlay, renderFlowStep, acti
 
     // Flow state is now managed inside js/flow-engine.js
 
+    export let unifiedBatchLog = null;
+    export function setUnifiedBatchLog(val) {
+        unifiedBatchLog = val;
+    }
+
     // Panel Float/Drag/Dock State
     let panelPosition = null; // { x, y }
     let isPanelDragging = false;
