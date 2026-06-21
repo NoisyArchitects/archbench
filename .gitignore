@@ -1,25 +1,24 @@
-# OS metadata
-.DS_Store
-Thumbs.db
-ref/
-screenshots/
-Screenshot *.png
-Screenshot*.png
-*.heic
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Node
-node_modules/
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Local simulated downloads
-archbench_*_log_*.json
-archbench_knowledge_pack_*.json
-archbench_architecture_context_*.md
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
