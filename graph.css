@@ -1265,5 +1265,13 @@ html, body {
     padding-top: 14px;
 }
 
+/* Active Topbar button state */
+.tb-btn.active {
+    background: rgba(180, 130, 255, 0.15) !important;
+    border-color: rgba(180, 130, 255, 0.35) !important;
+    color: hsl(280, 85%, 75%) !important;
+}
+
+
 
 
