@@ -1,6 +1,7 @@
 export interface NodeData {
     id: string;
     category?: string;
+    nodeType?: string;
     title: string;
     icon: string;
     color: string;
