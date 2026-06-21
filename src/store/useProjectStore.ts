@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Project, NodeData, ConnectionData, Flow, BatchLog } from '../types';
-import { getAvailableProjects } from '../utils/projectHelpers';
+import { getAvailableProjects, getCustomProjects, saveCustomProjects } from '../utils/projectHelpers';
 
 interface ProjectState {
     availableProjects: Project[];
@@ -24,6 +24,7 @@ interface ProjectState {
     stepFlow: (direction: 'next' | 'prev') => void;
     setUnifiedBatchLog: (log: BatchLog | null) => void;
     setLiveWatchEnabled: (enabled: boolean) => void;
+    updateNodePosition: (nodeId: string, x: number, y: number) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -129,5 +130,38 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     setLiveWatchEnabled: (enabled: boolean) => {
         set({ liveWatchEnabled: enabled });
+    },
+
+    updateNodePosition: (nodeId: string, x: number, y: number) => {
+        const { currentProject, nodes, availableProjects } = get();
+        const updatedNodes = nodes.map(n => n.id === nodeId ? { ...n, x, y } : n);
+        
+        if (currentProject) {
+            const updatedProject = {
+                ...currentProject,
+                nodes: (currentProject.nodes || []).map(n => n.id === nodeId ? { ...n, x, y } : n)
+            };
+            
+            const updatedAvailable = availableProjects.map(p => 
+                p.id === currentProject.id ? updatedProject : p
+            );
+            
+            const customProjects = getCustomProjects();
+            const isCustom = customProjects.some(p => p.id === currentProject.id);
+            if (isCustom) {
+                const updatedCustom = customProjects.map(p => 
+                    p.id === currentProject.id ? updatedProject : p
+                );
+                saveCustomProjects(updatedCustom);
+            }
+            
+            set({
+                nodes: updatedNodes,
+                currentProject: updatedProject,
+                availableProjects: updatedAvailable
+            });
+        } else {
+            set({ nodes: updatedNodes });
+        }
     }
 }));
