@@ -8,31 +8,31 @@
 (() => {
     "use strict";
 
-    // ─── Layer Zones ────────────────────────────────────────────
+    // ─── Layer Zones & Boundaries (Project-specific layout state) ────────────────
 
-    const LAYERS = [
+    let LAYERS = [];
+    let TRUST_BOUNDARY = null;
+
+    const DEFAULT_LAYERS = [
         { id: "entry",    label: "Entry Points — User-Facing Applications",  y: 150,  h: 420,  cls: "entry" },
         { id: "services", label: "Core Services — Processing & Verification", y: 640,  h: 480,  cls: "services" },
         { id: "infra",    label: "Infrastructure — Data, Analytics & Identity", y: 1190, h: 450,  cls: "infra" },
         { id: "future",   label: "Roadmap — Future Vision",                    y: 1710, h: 380,  cls: "future" },
     ];
 
-    // ─── Trust Boundary ─────────────────────────────────────────
-
-    const TRUST_BOUNDARY = {
+    const DEFAULT_TRUST_BOUNDARY = {
         x: 1000, y: 670,
         w: 1120, h: 950,
         label: "TRUST BOUNDARY (SECURE BACKEND)",
         note: "Decryption, persistence & intelligence execute inside this zone"
     };
 
-    // ─── Node Definitions ───────────────────────────────────────
-
     // ─── Project Loading (Dynamic configuration from window.ARCHBENCH_PROJECT) ───
     const project = window.ARCHBENCH_PROJECT || { title: "Untitled Project", version: "1.0", nodes: [], connections: [], flows: [] };
-    const NODES = project.nodes;
-    const CONNECTIONS = project.connections;
-    const FLOWS = project.flows;
+    let currentProject = null;
+    let NODES = [];
+    let CONNECTIONS = [];
+    let FLOWS = [];
 
     // ─── DOM References ─────────────────────────────────────────
 
@@ -59,6 +59,28 @@
     const fpMinimize  = document.getElementById("fp-minimize");
     const fpDock      = document.getElementById("fp-dock");
 
+    // Project System DOM Bindings
+    const btnProjectSelector = document.getElementById("btn-project-selector");
+    const projectDropdown    = document.getElementById("project-dropdown");
+    const projectList        = document.getElementById("project-list");
+    const currentProjectTitle = document.getElementById("current-project-title");
+    
+    const dropdownBtnCreate  = document.getElementById("dropdown-btn-create");
+    const dropdownBtnEdit    = document.getElementById("dropdown-btn-edit");
+    const dropdownBtnImport  = document.getElementById("dropdown-btn-import");
+    const dropdownBtnExport  = document.getElementById("dropdown-btn-export");
+    
+    const projectFileInput   = document.getElementById("project-file-input");
+    
+    const projectModal       = document.getElementById("project-modal");
+    const projectModalTitle  = document.getElementById("project-modal-title");
+    const projectModalClose  = document.getElementById("project-modal-close");
+    const projectTitleInput  = document.getElementById("project-title-input");
+    const projectVersionInput = document.getElementById("project-version-input");
+    const projectJsonInput   = document.getElementById("project-json-input");
+    const projectModalCancel = document.getElementById("project-modal-cancel");
+    const projectModalSave   = document.getElementById("project-modal-save");
+
     // ─── State ──────────────────────────────────────────────────
 
     let scale = 0.45, panX = 0, panY = 0;
@@ -81,30 +103,7 @@
     let currentDockState = "float"; // float, left, right
     let isMinimized = false;
 
-    // ─── Render Layer Zones ─────────────────────────────────────
 
-    LAYERS.forEach(l => {
-        const z = document.createElement("div");
-        z.className = `layer-zone ${l.cls}`;
-        z.style.top = l.y + "px"; z.style.height = l.h + "px";
-        z.innerHTML = `<span class="layer-label">${l.label}</span>`;
-        canvas.appendChild(z);
-    });
-
-    // ─── Render Trust Boundary ──────────────────────────────────
-
-    const trustEl = document.createElement("div");
-    trustEl.className = "trust-boundary";
-    trustEl.id = "trust-boundary";
-    trustEl.style.left   = TRUST_BOUNDARY.x + "px";
-    trustEl.style.top    = TRUST_BOUNDARY.y + "px";
-    trustEl.style.width  = TRUST_BOUNDARY.w + "px";
-    trustEl.style.height = TRUST_BOUNDARY.h + "px";
-    trustEl.innerHTML = `
-        <span class="trust-boundary-label">${TRUST_BOUNDARY.label}</span>
-        <span class="trust-boundary-note">${TRUST_BOUNDARY.note}</span>
-    `;
-    canvas.appendChild(trustEl);
 
     // ─── Build Nodes ────────────────────────────────────────────
 
@@ -166,7 +165,6 @@
         makeDraggable(el, n);
     }
 
-    NODES.forEach(buildNode);
 
     // ─── Measure Nodes ──────────────────────────────────────────
 
@@ -461,15 +459,7 @@
     // ─── FLOW SIMULATOR ─────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────
 
-    // Build flow buttons
-    FLOWS.forEach(flow => {
-        const btn = document.createElement("button");
-        btn.className = "flow-btn";
-        btn.dataset.flow = flow.id;
-        btn.innerHTML = `<span class="flow-btn-dot" style="background:${flow.color}"></span>${flow.title}`;
-        btn.addEventListener("click", () => startFlow(flow.id));
-        flowBarBtns.appendChild(btn);
-    });
+
 
     function startFlow(flowId) {
         unifiedBatchLog = null;
@@ -3162,30 +3152,534 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         }
     }
 
-    // Attach listeners
+    // ─── PROJECT SYSTEM ──────────────────────────────────────────
+    const DEFAULT_PROJECT_ID = "trace-sample";
+
+    const SKELETON_TEMPLATE = {
+        nodes: [
+            {
+                id: "node1",
+                category: "Entry Point",
+                title: "My Web Client",
+                icon: "💻",
+                color: "hsl(210,85%,62%)",
+                x: 300, y: 250,
+                desc: "User-facing dashboard application.",
+                sections: [
+                    { label: "Tech Stack", items: ["HTML", "Vanilla JS"] }
+                ]
+            },
+            {
+                id: "node2",
+                category: "Service",
+                title: "My Backend API",
+                icon: "⚙️",
+                color: "hsl(200,80%,58%)",
+                x: 750, y: 250,
+                desc: "Processes user requests.",
+                sections: [
+                    { label: "Features", items: ["Query database", "Format output"] }
+                ]
+            }
+        ],
+        connections: [
+            ["node1", "node2", "JSON over HTTPS", "request"]
+        ],
+        flows: [
+            {
+                id: "query_flow",
+                title: "Fetch Data Flow",
+                subtitle: "Retrieve data from backend service",
+                steps: [
+                    {
+                        node: "node1",
+                        label: "Send Request",
+                        detail: "Browser triggers AJAX query to API.",
+                        data: '{"query": "products"}'
+                    },
+                    {
+                        node: "node2",
+                        label: "Fetch Database",
+                        detail: "API queries relational store and formats response.",
+                        data: '{"status": 200, "count": 12}'
+                    }
+                ]
+            }
+        ]
+    };
+
+    function getCustomProjects() {
+        try {
+            const data = localStorage.getItem("archbench_projects");
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error("Failed to load projects from localStorage", e);
+            return [];
+        }
+    }
+
+    function saveCustomProjects(projects) {
+        try {
+            localStorage.setItem("archbench_projects", JSON.stringify(projects));
+        } catch (e) {
+            console.error("Failed to save projects to localStorage", e);
+            showToast("Failed to save project locally. Storage may be full.");
+        }
+    }
+
+    function getAvailableProjects() {
+        const custom = getCustomProjects();
+        const list = [];
+        
+        // Always include built-in TRACE project as default
+        const builtIn = { ...project };
+        if (!builtIn.id) builtIn.id = DEFAULT_PROJECT_ID;
+        list.push(builtIn);
+        
+        custom.forEach(p => {
+            if (p.id !== DEFAULT_PROJECT_ID) {
+                list.push(p);
+            }
+        });
+        
+        return list;
+    }
+
+    function loadProject(projectToLoad) {
+        // Stop any active simulations
+        stopAutoPlay();
+        exitFlow();
+        unifiedBatchLog = null;
+        
+        if (currentProjectTitle) {
+            currentProjectTitle.textContent = projectToLoad.title || "Untitled Project";
+        }
+        
+        // Save active project ID to localStorage
+        localStorage.setItem("archbench_active_project_id", projectToLoad.id);
+        currentProject = projectToLoad;
+        
+        // Re-assign NODES, CONNECTIONS, FLOWS
+        NODES = projectToLoad.nodes || [];
+        CONNECTIONS = projectToLoad.connections || [];
+        FLOWS = projectToLoad.flows || [];
+        
+        // Re-resolve layers and boundaries
+        LAYERS = projectToLoad.layers || DEFAULT_LAYERS;
+        TRUST_BOUNDARY = projectToLoad.hasOwnProperty('trustBoundary') ? projectToLoad.trustBoundary : DEFAULT_TRUST_BOUNDARY;
+        
+        // Clear canvas dynamic layers and nodes
+        canvas.querySelectorAll(".layer-zone").forEach(el => el.remove());
+        canvas.querySelectorAll(".trust-boundary").forEach(el => el.remove());
+        canvas.querySelectorAll(".graph-node").forEach(el => el.remove());
+        
+        // Render layers
+        LAYERS.forEach(l => {
+            const z = document.createElement("div");
+            z.className = `layer-zone ${l.cls || 'services'}`;
+            z.style.top = l.y + "px"; z.style.height = l.h + "px";
+            z.innerHTML = `<span class="layer-label">${l.label}</span>`;
+            canvas.appendChild(z);
+        });
+        
+        // Render trust boundary
+        if (TRUST_BOUNDARY) {
+            const trustEl = document.createElement("div");
+            trustEl.className = "trust-boundary";
+            trustEl.id = "trust-boundary";
+            trustEl.style.left   = TRUST_BOUNDARY.x + "px";
+            trustEl.style.top    = TRUST_BOUNDARY.y + "px";
+            trustEl.style.width  = TRUST_BOUNDARY.w + "px";
+            trustEl.style.height = TRUST_BOUNDARY.h + "px";
+            trustEl.innerHTML = `
+                <span class="trust-boundary-label">${TRUST_BOUNDARY.label}</span>
+                <span class="trust-boundary-note">${TRUST_BOUNDARY.note || ""}</span>
+            `;
+            canvas.appendChild(trustEl);
+        }
+        
+        // Re-render nodes
+        Object.keys(nodeEls).forEach(k => delete nodeEls[k]);
+        Object.keys(nodeData).forEach(k => delete nodeData[k]);
+        NODES.forEach(buildNode);
+        
+        // Re-render flow simulator bar buttons
+        if (flowBarBtns) {
+            flowBarBtns.innerHTML = "";
+            FLOWS.forEach(flow => {
+                const btn = document.createElement("button");
+                btn.className = "flow-btn";
+                btn.dataset.flow = flow.id;
+                btn.innerHTML = `<span class="flow-btn-dot" style="background:${flow.color || 'hsl(210,85%,62%)'}"></span>${flow.title}`;
+                btn.addEventListener("click", () => startFlow(flow.id));
+                flowBarBtns.appendChild(btn);
+            });
+        }
+        
+        // Re-render other dynamic UI panels
+        populateBatchChecklist();
+        populateAIGrid();
+        populateLegend();
+        
+        // Clear health content preview
+        const healthContent = document.getElementById("health-report-content");
+        if (healthContent) {
+            healthContent.innerHTML = `<p style="font-size:11px; color:var(--text-secondary); line-height:1.5; font-style: italic;">Run a sequential simulation audit through the Flow Checklist tab to compile and view the Architecture Health Report.</p>`;
+        }
+        
+        // Reset execution log
+        const logContent = document.getElementById("log-code-preview");
+        if (logContent) {
+            logContent.textContent = "Select and run a simulation scenario to record system execution logs.";
+        }
+        
+        // Recompute layout sizes and render
+        setTimeout(() => {
+            measureNodes();
+            drawConnections();
+            updateMinimap();
+            fitToView(false);
+        }, 150);
+    }
+
+    function populateLegend() {
+        const legendEl = document.getElementById("legend");
+        if (!legendEl) return;
+        
+        let html = `<div class="legend-title">Node Types</div>`;
+        const categories = {};
+        NODES.forEach(n => {
+            if (n.category && !categories[n.category]) {
+                categories[n.category] = n.color || "hsl(210,85%,62%)";
+            }
+        });
+        
+        Object.keys(categories).forEach(cat => {
+            html += `<div class="legend-item"><span class="legend-dot" style="background: ${categories[cat]}"></span>${cat}</div>`;
+        });
+        
+        html += `<div class="legend-title" style="margin-top: 6px;">Connections</div>`;
+        html += `<div class="legend-item"><span class="legend-line solid"></span>Request Flow</div>`;
+        html += `<div class="legend-item"><span class="legend-line dashed"></span>Data Flow</div>`;
+        
+        legendEl.innerHTML = html;
+    }
+
+    function populateProjectDropdownList() {
+        if (!projectList) return;
+        projectList.innerHTML = "";
+        const list = getAvailableProjects();
+        
+        list.forEach(p => {
+            const item = document.createElement("div");
+            item.className = "project-item";
+            if (currentProject && p.id === currentProject.id) {
+                item.classList.add("active");
+            }
+            
+            item.addEventListener("click", () => {
+                projectDropdown.classList.remove("show");
+                loadProject(p);
+            });
+            
+            const titleWrapper = document.createElement("div");
+            titleWrapper.className = "project-item-title-wrapper";
+            
+            const titleSpan = document.createElement("span");
+            titleSpan.textContent = p.title;
+            titleWrapper.appendChild(titleSpan);
+            
+            const verSpan = document.createElement("span");
+            verSpan.className = "project-item-version";
+            verSpan.textContent = `v${p.version || "1.0"}`;
+            titleWrapper.appendChild(verSpan);
+            
+            item.appendChild(titleWrapper);
+            
+            // Delete button for custom projects
+            if (p.id !== DEFAULT_PROJECT_ID) {
+                const delBtn = document.createElement("button");
+                delBtn.className = "project-item-delete";
+                delBtn.title = "Delete Project";
+                delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+                
+                delBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to permanently delete project '${p.title}'?`)) {
+                        let custom = getCustomProjects();
+                        custom = custom.filter(cp => cp.id !== p.id);
+                        saveCustomProjects(custom);
+                        
+                        if (currentProject && currentProject.id === p.id) {
+                            const available = getAvailableProjects();
+                            if (available.length > 0) {
+                                loadProject(available[0]);
+                            }
+                        }
+                        
+                        populateProjectDropdownList();
+                        showToast(`Project '${p.title}' deleted.`);
+                    }
+                });
+                
+                item.appendChild(delBtn);
+            }
+            
+            projectList.appendChild(item);
+        });
+    }
+
+    let editingProjectId = null;
+
+    function openProjectModal(projId = null) {
+        editingProjectId = projId;
+        if (projId) {
+            const projects = getAvailableProjects();
+            const proj = projects.find(p => p.id === projId);
+            if (!proj) return;
+            
+            projectModalTitle.textContent = "Edit Project Settings";
+            projectTitleInput.value = proj.title || "";
+            projectVersionInput.value = proj.version || "1.0";
+            
+            const spec = {
+                nodes: proj.nodes || [],
+                connections: proj.connections || [],
+                flows: proj.flows || [],
+                layers: proj.layers || undefined,
+                trustBoundary: proj.hasOwnProperty('trustBoundary') ? proj.trustBoundary : undefined
+            };
+            projectJsonInput.value = JSON.stringify(spec, null, 2);
+        } else {
+            projectModalTitle.textContent = "Create New Project";
+            projectTitleInput.value = "";
+            projectVersionInput.value = "1.0";
+            projectJsonInput.value = JSON.stringify(SKELETON_TEMPLATE, null, 2);
+        }
+        projectModal.classList.add("show");
+    }
+
+    function closeProjectModal() {
+        projectModal.classList.remove("show");
+        editingProjectId = null;
+    }
+
+    function saveProjectFromModal() {
+        const title = projectTitleInput.value.trim();
+        const version = projectVersionInput.value.trim() || "1.0";
+        const jsonStr = projectJsonInput.value.trim();
+        
+        if (!title) {
+            alert("Project Title is required.");
+            return;
+        }
+        
+        let spec;
+        try {
+            spec = JSON.parse(jsonStr);
+        } catch (e) {
+            alert("Invalid JSON format in Architecture Specification: " + e.message);
+            return;
+        }
+        
+        if (!spec.nodes || !Array.isArray(spec.nodes)) {
+            alert("Specification JSON must contain a 'nodes' array.");
+            return;
+        }
+        if (!spec.connections || !Array.isArray(spec.connections)) {
+            alert("Specification JSON must contain a 'connections' array.");
+            return;
+        }
+        if (!spec.flows || !Array.isArray(spec.flows)) {
+            alert("Specification JSON must contain a 'flows' array.");
+            return;
+        }
+        
+        const custom = getCustomProjects();
+        
+        if (editingProjectId) {
+            const idx = custom.findIndex(p => p.id === editingProjectId);
+            if (idx === -1) {
+                // If editing built-in project, save as a new custom project clone
+                const newProj = {
+                    id: "project_" + Date.now(),
+                    title,
+                    version,
+                    ...spec
+                };
+                custom.push(newProj);
+                saveCustomProjects(custom);
+                loadProject(newProj);
+                showToast(`Built-in project cloned as '${title}'`);
+            } else {
+                custom[idx] = {
+                    id: editingProjectId,
+                    title,
+                    version,
+                    ...spec
+                };
+                saveCustomProjects(custom);
+                if (currentProject && currentProject.id === editingProjectId) {
+                    loadProject(custom[idx]);
+                }
+                showToast(`Project '${title}' updated.`);
+            }
+        } else {
+            const newProj = {
+                id: "project_" + Date.now(),
+                title,
+                version,
+                ...spec
+            };
+            custom.push(newProj);
+            saveCustomProjects(custom);
+            loadProject(newProj);
+            showToast(`Project '${title}' created successfully.`);
+        }
+        
+        closeProjectModal();
+    }
+
+    function startupProjectSystem() {
+        const list = getAvailableProjects();
+        const activeId = localStorage.getItem("archbench_active_project_id");
+        let activeProj = list.find(p => p.id === activeId);
+        
+        if (!activeProj && list.length > 0) {
+            activeProj = list[0];
+        }
+        
+        if (activeProj) {
+            loadProject(activeProj);
+        }
+    }
+
+    // ─── Attach Listeners ────────────────────────────────────────
+
     btnStartBatch.addEventListener("click", startBatchRun);
     btnStopBatch.addEventListener("click", stopBatchRun);
 
-    // Initialize Checklist
-    populateBatchChecklist();
+    // Project Dropdown Events
+    if (btnProjectSelector) {
+        btnProjectSelector.addEventListener("click", (e) => {
+            e.stopPropagation();
+            projectDropdown.classList.toggle("show");
+            if (projectDropdown.classList.contains("show")) {
+                populateProjectDropdownList();
+            }
+        });
+    }
 
-    // Populate AI Actions
-    populateAIGrid();
+    document.addEventListener("click", () => {
+        if (projectDropdown) projectDropdown.classList.remove("show");
+    });
+
+    if (projectDropdown) {
+        projectDropdown.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+    }
+
+    if (dropdownBtnCreate) {
+        dropdownBtnCreate.addEventListener("click", () => {
+            if (projectDropdown) projectDropdown.classList.remove("show");
+            openProjectModal(null);
+        });
+    }
+
+    if (dropdownBtnEdit) {
+        dropdownBtnEdit.addEventListener("click", () => {
+            if (projectDropdown) projectDropdown.classList.remove("show");
+            if (currentProject) {
+                openProjectModal(currentProject.id);
+            }
+        });
+    }
+
+    if (dropdownBtnImport) {
+        dropdownBtnImport.addEventListener("click", () => {
+            if (projectDropdown) projectDropdown.classList.remove("show");
+            if (projectFileInput) projectFileInput.click();
+        });
+    }
+
+    if (projectFileInput) {
+        projectFileInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const parsed = JSON.parse(event.target.result);
+                    if (!parsed.title || !parsed.nodes || !parsed.connections || !parsed.flows) {
+                        throw new Error("Invalid project structure. Requires 'title', 'nodes', 'connections', and 'flows'.");
+                    }
+                    
+                    parsed.id = "project_" + Date.now();
+                    
+                    const custom = getCustomProjects();
+                    custom.push(parsed);
+                    saveCustomProjects(custom);
+                    
+                    loadProject(parsed);
+                    showToast(`Project '${parsed.title}' imported successfully!`);
+                } catch (err) {
+                    alert("Failed to import project: " + err.message);
+                }
+                projectFileInput.value = "";
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    if (dropdownBtnExport) {
+        dropdownBtnExport.addEventListener("click", () => {
+            if (projectDropdown) projectDropdown.classList.remove("show");
+            if (!currentProject) {
+                showToast("No active project to export!");
+                return;
+            }
+            
+            const exportData = {
+                id: currentProject.id,
+                title: currentProject.title,
+                version: currentProject.version,
+                nodes: NODES,
+                connections: CONNECTIONS,
+                flows: FLOWS,
+                layers: currentProject.layers || null,
+                trustBoundary: currentProject.hasOwnProperty('trustBoundary') ? currentProject.trustBoundary : undefined
+            };
+            
+            const json = JSON.stringify(exportData, null, 2);
+            const safeTitle = currentProject.title.toLowerCase().replace(/[^a-z0-9]/g, "_");
+            downloadFile(json, `archbench_project_${safeTitle}_${Date.now()}.json`, "application/json");
+            showToast("Project configuration exported successfully.");
+        });
+    }
+
+    // Modal Control Events
+    if (projectModalClose) projectModalClose.addEventListener("click", closeProjectModal);
+    if (projectModalCancel) projectModalCancel.addEventListener("click", closeProjectModal);
+    if (projectModalSave) projectModalSave.addEventListener("click", saveProjectFromModal);
 
 
     // ─── Init ───────────────────────────────────────────────────
 
+    // Replaces default startup static drawings by loading project dynamically
+    startupProjectSystem();
+
     setTimeout(() => {
-        measureNodes();
-        drawConnections();
-        updateMinimap();
-        fitToView(false);
         reloadHistoryCache().catch(err => console.error("Could not load history on startup:", err));
     }, 250);
 
     // Help auto-fade
     setTimeout(() => {
-        if (helpHint) { helpHint.style.opacity = "0"; setTimeout(() => { if(helpHint) helpHint.style.display = "none"; }, 600); }
+        if (helpHint) { 
+            helpHint.style.opacity = "0"; 
+            setTimeout(() => { if(helpHint) helpHint.style.display = "none"; }, 600); 
+        }
     }, 6000);
 
     applyTransform();
