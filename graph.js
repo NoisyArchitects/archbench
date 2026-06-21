@@ -2677,8 +2677,11 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
             const pack = generateKnowledgePackJSON();
             const version = batchLog.version || "1.0";
 
+            const projId = currentProject ? currentProject.id : "trace-sample";
+
             const auditRun = {
                 id: runId,
+                projectId: projId,
                 timestamp: timestamp,
                 architectureVersion: version,
                 flowsExecuted: batchLog.flowsSimulated,
@@ -2689,6 +2692,7 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
 
             const snapshot = {
                 id: "snap_" + timestamp,
+                projectId: projId,
                 timestamp: timestamp,
                 architectureVersion: version,
                 nodeCount: NODES.length,
@@ -2701,6 +2705,7 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
 
             const healthHist = {
                 id: "health_" + timestamp,
+                projectId: projId,
                 timestamp: timestamp,
                 architectureVersion: version,
                 totalFlows: report.summary.flowsExecuted,
@@ -2755,6 +2760,38 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         });
     }
 
+    function clearProjectHistoryFromDB(projectId) {
+        return initDB().then(database => {
+            return new Promise((resolve, reject) => {
+                const tx = database.transaction(["auditRuns", "architectureSnapshots", "healthHistory"], "readwrite");
+                const stores = ["auditRuns", "architectureSnapshots", "healthHistory"];
+                
+                stores.forEach(storeName => {
+                    const store = tx.objectStore(storeName);
+                    const req = store.openCursor();
+                    req.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            if (cursor.value.projectId === projectId) {
+                                cursor.delete();
+                            }
+                            cursor.continue();
+                        }
+                    };
+                });
+                
+                tx.oncomplete = () => {
+                    console.log(`Cleaned up history for project: ${projectId}`);
+                    reloadHistoryCache().then(resolve);
+                };
+                tx.onerror = (err) => {
+                    console.error("Failed to cleanup project history:", err);
+                    reject(err);
+                };
+            });
+        });
+    }
+
     function calculateArchitectureQualityScore(report) {
         if (!report) return 100;
         let score = 100;
@@ -2802,9 +2839,10 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         if (!historyReportContent) return;
 
         reloadHistoryCache().then(() => {
-            const runs = localHistoryCache.auditRuns;
-            const healths = localHistoryCache.healthHistory;
-            const snaps = localHistoryCache.architectureSnapshots;
+            const currentProjId = currentProject ? currentProject.id : "trace-sample";
+            const runs = localHistoryCache.auditRuns.filter(r => !r.projectId || r.projectId === currentProjId);
+            const healths = localHistoryCache.healthHistory.filter(h => !h.projectId || h.projectId === currentProjId);
+            const snaps = localHistoryCache.architectureSnapshots.filter(s => !s.projectId || s.projectId === currentProjId);
 
             if (runs.length === 0) {
                 historyReportContent.innerHTML = `
@@ -3769,20 +3807,31 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
                 
                 delBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
-                    if (confirm(`Are you sure you want to permanently delete project '${p.title}'?`)) {
+                    if (confirm(`Are you sure you want to permanently delete project '${p.title}' and all of its simulation history?`)) {
                         let custom = getCustomProjects();
                         custom = custom.filter(cp => cp.id !== p.id);
                         saveCustomProjects(custom);
                         
-                        if (currentProject && currentProject.id === p.id) {
-                            const available = getAvailableProjects();
-                            if (available.length > 0) {
-                                loadProject(available[0]);
+                        clearProjectHistoryFromDB(p.id).then(() => {
+                            if (currentProject && currentProject.id === p.id) {
+                                const available = getAvailableProjects();
+                                if (available.length > 0) {
+                                    loadProject(available[0]);
+                                }
                             }
-                        }
-                        
-                        populateProjectDropdownList();
-                        showToast(`Project '${p.title}' deleted.`);
+                            populateProjectDropdownList();
+                            showToast(`Project '${p.title}' and its history deleted.`);
+                        }).catch(err => {
+                            console.error("Error clearing project history on delete:", err);
+                            if (currentProject && currentProject.id === p.id) {
+                                const available = getAvailableProjects();
+                                if (available.length > 0) {
+                                    loadProject(available[0]);
+                                }
+                            }
+                            populateProjectDropdownList();
+                            showToast(`Project '${p.title}' deleted.`);
+                        });
                     }
                 });
                 
