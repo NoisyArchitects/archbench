@@ -2307,18 +2307,32 @@ Ensure you update only the \`architecture.md\` file when modifying the layout. D
 
 
     // Project Dropdown Events
-    if (btnProjectSelector) {
+    if (btnProjectSelector && projectDropdown) {
         btnProjectSelector.addEventListener("click", (e) => {
+            console.log("Projects selector button clicked!");
             e.stopPropagation();
-            projectDropdown.classList.toggle("show");
-            if (projectDropdown.classList.contains("show")) {
-                populateProjectDropdownList();
+            const isOpen = projectDropdown.classList.toggle("show");
+            console.log("Dropdown isOpen:", isOpen);
+            if (isOpen) {
+                try {
+                    populateProjectDropdownList();
+                    console.log("Dropdown list populated successfully.");
+                } catch (err) {
+                    console.error("Failed to populate project list:", err);
+                }
             }
+        });
+    } else {
+        console.error("Projects selector button or dropdown elements not found in DOM!", {
+            btnProjectSelector: !!btnProjectSelector,
+            projectDropdown: !!projectDropdown
         });
     }
 
     document.addEventListener("click", () => {
-        if (projectDropdown) projectDropdown.classList.remove("show");
+        if (projectDropdown) {
+            projectDropdown.classList.remove("show");
+        }
     });
 
     if (projectDropdown) {
