@@ -1490,11 +1490,18 @@ Ensure you update only the \`architecture.md\` file when modifying the layout. D
                 if (wizardAnalyzeTitle) wizardAnalyzeTitle.value = parsed.title;
                 
                 if (wizardScanStatus) {
-                    wizardScanStatus.innerHTML = `<span style="color: hsl(150, 75%, 70%); font-weight:600;">✅ Found architecture.md!</span><br>` +
-                        `<strong>Title:</strong> ${parsed.title}<br>` +
-                        `<strong>Version:</strong> ${parsed.version}<br>` +
-                        `<strong>Components:</strong> ${parsed.nodes.length} nodes, ${parsed.connections.length} connections.<br>` +
-                        `<span style="color: hsl(200, 85%, 75%); font-size:10px;">Live Watch will auto-enable on load.</span>`;
+                    wizardScanStatus.innerHTML = 
+                        `<div style="padding: 10px; border-radius: 8px; background: rgba(76, 175, 80, 0.05); border: 1px solid rgba(76, 175, 80, 0.2); text-align: left;">` +
+                            `<div style="font-weight: 700; font-size: 11px; color: hsl(150, 75%, 70%); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">` +
+                                `<span>✅</span> EXISTING SPECIFICATION FOUND` +
+                            `</div>` +
+                            `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4;">` +
+                                `Found <code>architecture.md</code> in your project root! We parsed it successfully:<br>` +
+                                `• <strong>Title:</strong> ${parsed.title}<br>` +
+                                `• <strong>Components:</strong> ${parsed.nodes.length} nodes, ${parsed.connections.length} connections.<br>` +
+                                `• <strong>Status:</strong> Live Watch is ready to sync edits automatically.` +
+                            `</div>` +
+                        `</div>`;
                 }
                 if (wizardBtnLoadAnalyzed) wizardBtnLoadAnalyzed.disabled = false;
             } else {
@@ -1648,26 +1655,29 @@ Ensure you update only the \`architecture.md\` file when modifying the layout. D
                     }
                     
                     wizardScanStatus.innerHTML = 
-                        `<div style="display:flex; flex-direction:column; gap:8px;">` +
-                            `<div>` +
-                                `<span style="color: hsl(32, 85%, 58%); font-weight:600;">⚠️ architecture.md not found in directory.</span><br>` +
-                                `Detected components: <strong>${detectedText.join(", ")}</strong>.<br>` +
-                                `${foldersHtml}` +
-                            `</div>` +
-                            `<div style="padding: 10px; border-radius: 8px; background: rgba(180, 130, 255, 0.05); border: 1px solid rgba(180, 130, 255, 0.15); margin-top: 4px;">` +
-                                `<div style="font-weight: 700; font-size: 10px; color: hsl(280, 85%, 75%); margin-bottom: 4px;">📂 DIRECT SYNC ONBOARDING</div>` +
+                        `<div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">` +
+                            `<div style="padding: 10px; border-radius: 8px; background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.25);">` +
+                                `<div style="font-weight: 700; font-size: 11px; color: hsl(38, 95%, 70%); margin-bottom: 4px;">` +
+                                    `⚡ SKELETON SPEC REQUIRED` +
+                                `</div>` +
                                 `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4;">` +
-                                    `Clicking <strong>Load Project</strong> will write <code>architecture.md</code> and <code>PROJECT_RULES.md</code> directly into your project root and start <strong>Live Watch</strong>.` +
+                                    `We did not find <code>architecture.md</code> in this directory. We scanned your folder structure and will write starter specs directly into your folder:<br>` +
+                                    `• 📄 <code>architecture.md</code> (blank visual spec)<br>` +
+                                    `• 📄 <code>PROJECT_RULES.md</code> (AI prompt rules)<br>` +
+                                    `• <strong>Detected components</strong>: ${detectedText.join(", ")}` +
+                                    `${foldersHtml}` +
                                 `</div>` +
                             `</div>` +
-                            `<div style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">` +
-                                `<div style="font-weight: 700; font-size: 10px; color: hsl(280, 85%, 75%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">` +
-                                    `<span>🤖 LLM PROMPT FOR ARCHITECTURE SPEC</span>` +
-                                    `<button id="btn-copy-onboarding-prompt" style="background: rgba(180, 130, 255, 0.2); border: 1px solid rgba(180, 130, 255, 0.4); color: hsl(280, 85%, 80%); padding: 2px 6px; font-size: 9px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Copy Prompt</button>` +
+                            
+                            `<div style="padding: 12px; border-radius: 8px; background: rgba(180, 130, 255, 0.04); border: 1px solid rgba(180, 130, 255, 0.15);">` +
+                                `<div style="font-weight: 700; font-size: 10.5px; color: hsl(280, 85%, 80%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">` +
+                                    `<span>🤖 AI PROMPT FOR IDE/CLI</span>` +
+                                    `<button id="btn-copy-onboarding-prompt" style="background: rgba(180, 130, 255, 0.2); border: 1px solid rgba(180, 130, 255, 0.4); color: hsl(280, 85%, 80%); padding: 3px 8px; font-size: 9px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Copy Prompt</button>` +
                                 `</div>` +
-                                `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4; font-family: monospace; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow-y: auto; max-height: 80px;">` +
-                                    `You are a senior system architect. I have initialized an ArchBench workspace. Analyze my codebase files and write the architecture specification directly into architecture.md in my root folder, following the format rules in PROJECT_RULES.md. Do not output explanations, only write the markdown code.` +
+                                `<div style="font-size: 9.5px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px;">` +
+                                    `Copy this prompt and paste it in Cursor, Gemini, Claude, or Copilot to write your spec from your code files.` +
                                 `</div>` +
+                                `<div style="font-size: 9.5px; font-family: monospace; white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto; color: var(--text-secondary);">You are a senior system architect. I have initialized an ArchBench workspace. Analyze my codebase files and write the architecture specification directly into architecture.md in my root folder, following the format rules in PROJECT_RULES.md. Do not output explanations, only write the markdown code.</div>` +
                             `</div>` +
                         `</div>`;
                 }
@@ -1714,10 +1724,18 @@ Ensure you update only the \`architecture.md\` file when modifying the layout. D
                     if (wizardAnalyzeTitle) wizardAnalyzeTitle.value = parsed.title;
                     
                     if (wizardScanStatus) {
-                        wizardScanStatus.innerHTML = `<span style="color: hsl(150, 75%, 70%); font-weight:600;">✅ Found architecture.md!</span><br>` +
-                            `<strong>Title:</strong> ${parsed.title}<br>` +
-                            `<strong>Version:</strong> ${parsed.version}<br>` +
-                            `<strong>Components:</strong> ${parsed.nodes.length} nodes, ${parsed.connections.length} connections.`;
+                        wizardScanStatus.innerHTML = 
+                            `<div style="padding: 10px; border-radius: 8px; background: rgba(76, 175, 80, 0.05); border: 1px solid rgba(76, 175, 80, 0.2); text-align: left;">` +
+                                `<div style="font-weight: 700; font-size: 11px; color: hsl(150, 75%, 70%); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">` +
+                                    `<span>✅</span> EXISTING SPECIFICATION FOUND` +
+                                `</div>` +
+                                `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4;">` +
+                                    `Found <code>architecture.md</code> in your uploaded folder! We parsed it successfully:<br>` +
+                                    `• <strong>Title:</strong> ${parsed.title}<br>` +
+                                    `• <strong>Components:</strong> ${parsed.nodes.length} nodes, ${parsed.connections.length} connections.<br>` +
+                                    `• <strong>Status:</strong> Ready to load. Live Watch requires modern directory picker support.` +
+                                `</div>` +
+                            `</div>`;
                     }
                     if (wizardBtnLoadAnalyzed) wizardBtnLoadAnalyzed.disabled = false;
                 } catch (err) {
@@ -1865,30 +1883,33 @@ Ensure you update only the \`architecture.md\` file when modifying the layout. D
                 }
 
                 wizardScanStatus.innerHTML = 
-                    `<div style="display:flex; flex-direction:column; gap:8px;">` +
-                        `<div>` +
-                            `<span style="color: hsl(32, 85%, 58%); font-weight:600;">⚠️ architecture.md not found in directory.</span><br>` +
-                            `Detected components: <strong>${detectedText.join(", ")}</strong>.<br>` +
-                            `${foldersHtml}` +
-                        `</div>` +
-                        `<div style="padding: 10px; border-radius: 8px; background: rgba(255,160,0,0.05); border: 1px solid rgba(255,160,0,0.15); margin-top: 4px;">` +
-                            `<div style="font-weight: 700; font-size: 10px; color: hsl(38, 95%, 65%); margin-bottom: 6px;">📥 DOWNLOAD STARTER FILES</div>` +
-                            `<div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.4;">` +
-                                `Since this browser environment doesn't allow writing directly to local folders, click below to download your starter files. Place them in your project root!` +
+                    `<div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">` +
+                        `<div style="padding: 10px; border-radius: 8px; background: rgba(244, 67, 54, 0.05); border: 1px solid rgba(244, 67, 54, 0.2);">` +
+                            `<div style="font-weight: 700; font-size: 11px; color: hsl(0, 85%, 70%); margin-bottom: 4px;">` +
+                                `⚠️ OFFLINE SPEC SETUP REQUIRED` +
                             `</div>` +
+                            `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4;">` +
+                                `This browser blocks writing directly to folders. Follow these steps to set up manually:<br>` +
+                                `• <strong>Detected components</strong>: ${detectedText.join(", ")}` +
+                                `${foldersHtml}` +
+                            `</div>` +
+                        `</div>` +
+                        
+                        `<div style="padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">` +
+                            `<div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 10px;">1. DOWNLOAD STARTER SPECS</div>` +
                             `<div style="display: flex; gap: 8px;">` +
-                                `<button id="btn-download-scaffold-arch" style="background: rgba(255,160,0,0.15); border: 1px solid rgba(255,160,0,0.3); color: hsl(38, 95%, 75%); padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Download architecture.md</button>` +
-                                `<button id="btn-download-scaffold-rules" style="background: rgba(255,160,0,0.15); border: 1px solid rgba(255,160,0,0.3); color: hsl(38, 95%, 75%); padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Download PROJECT_RULES.md</button>` +
+                                `<button id="btn-download-scaffold-arch" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); padding: 5px 10px; font-size: 9.5px; cursor: pointer; border-radius: 4px; font-family: inherit; flex: 1; font-weight: 600;">Download architecture.md</button>` +
+                                `<button id="btn-download-scaffold-rules" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); padding: 5px 10px; font-size: 9.5px; cursor: pointer; border-radius: 4px; font-family: inherit; flex: 1; font-weight: 600;">Download PROJECT_RULES.md</button>` +
                             `</div>` +
+                            `<div style="font-size: 9px; color: var(--text-muted); margin-top: 6px;">Download and place these in your project's root folder.</div>` +
                         `</div>` +
-                        `<div style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">` +
-                            `<div style="font-weight: 700; font-size: 10px; color: hsl(280, 85%, 75%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">` +
-                                `<span>🤖 LLM PROMPT FOR ARCHITECTURE SPEC</span>` +
-                                `<button id="btn-copy-onboarding-prompt" style="background: rgba(180, 130, 255, 0.2); border: 1px solid rgba(180, 130, 255, 0.4); color: hsl(280, 85%, 80%); padding: 2px 6px; font-size: 9px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Copy Prompt</button>` +
+                        
+                        `<div style="padding: 12px; border-radius: 8px; background: rgba(180, 130, 255, 0.04); border: 1px solid rgba(180, 130, 255, 0.15);">` +
+                            `<div style="font-weight: 700; font-size: 10.5px; color: hsl(280, 85%, 80%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">` +
+                                `<span>🤖 2. COPY AI PROMPT FOR IDE/CLI</span>` +
+                                `<button id="btn-copy-onboarding-prompt" style="background: rgba(180, 130, 255, 0.2); border: 1px solid rgba(180, 130, 255, 0.4); color: hsl(280, 85%, 80%); padding: 3px 8px; font-size: 9px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600;">Copy Prompt</button>` +
                             `</div>` +
-                            `<div style="font-size: 10px; color: var(--text-secondary); line-height: 1.4; font-family: monospace; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow-y: auto; max-height: 80px;">` +
-                                `You are a senior system architect. I have initialized an ArchBench workspace. Analyze my codebase files and write the architecture specification directly into architecture.md in my root folder, following the format rules in PROJECT_RULES.md. Do not output explanations, only write the markdown code.` +
-                            `</div>` +
+                            `<div style="font-size: 9.5px; font-family: monospace; white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto; color: var(--text-secondary);">You are a senior system architect. I have initialized an ArchBench workspace. Analyze my codebase files and write the architecture specification directly into architecture.md in my root folder, following the format rules in PROJECT_RULES.md. Do not output explanations, only write the markdown code.</div>` +
                         `</div>` +
                     `</div>`;
             }

@@ -1195,7 +1195,7 @@ body:has(.flow-playback.hidden) .viewport {
 
 /* Onboarding Wizard Styling */
 .wizard-card {
-    max-width: 780px;
+    max-width: 540px;
 }
 
 .wizard-step {
