@@ -905,13 +905,38 @@
     const historyReportContent = document.getElementById("history-report-content");
 
     const logCodePreview = document.getElementById("log-code-preview");
-    const aiActionsGrid = document.getElementById("ai-actions-grid");
-    const aiPromptPreview = document.getElementById("ai-prompt-preview");
+    
+    // AI Chat Panel selectors
+    const btnAiSettings = document.getElementById("btn-ai-settings");
+    const btnClearChat = document.getElementById("btn-clear-chat");
+    const aiChatHistory = document.getElementById("ai-chat-history");
+    const aiQuickTemplates = document.getElementById("ai-quick-templates");
+    const aiChatInput = document.getElementById("ai-chat-input");
+    const btnAiSend = document.getElementById("btn-ai-send");
+    const aiSettingsDrawer = document.getElementById("ai-settings-drawer");
+    const btnCloseSettings = document.getElementById("btn-close-settings");
+    const aiProviderSelect = document.getElementById("ai-provider-select");
+    const btnSaveSettings = document.getElementById("btn-save-settings");
+    const aiInjectContext = document.getElementById("ai-inject-context");
+
+    // Provider config divs
+    const sectionGemini = document.getElementById("section-gemini");
+    const sectionOpenai = document.getElementById("section-openai");
+    const sectionOllama = document.getElementById("section-ollama");
+
+    // Config inputs
+    const inputGeminiKey = document.getElementById("ai-gemini-key");
+    const inputGeminiModel = document.getElementById("ai-gemini-model");
+    const inputGeminiUrl = document.getElementById("ai-gemini-url");
+    const inputOpenaiKey = document.getElementById("ai-openai-key");
+    const inputOpenaiModel = document.getElementById("ai-openai-model");
+    const inputOpenaiUrl = document.getElementById("ai-openai-url");
+    const inputOllamaUrl = document.getElementById("ai-ollama-url");
+    const inputOllamaModel = document.getElementById("ai-ollama-model");
 
     const btnCopyLogJson = document.getElementById("btn-copy-log-json");
     const btnCopyLogMd = document.getElementById("btn-copy-log-md");
     const btnDownloadLog = document.getElementById("btn-download-log");
-    const btnCopyPrompt = document.getElementById("btn-copy-prompt");
     const btnCopyPack = document.getElementById("btn-copy-pack");
     const btnDownloadPackJson = document.getElementById("btn-download-pack-json");
     const btnDownloadPackMd = document.getElementById("btn-download-pack-md");
@@ -1364,32 +1389,329 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         logCodePreview.textContent = JSON.stringify(log, null, 4);
     }
 
-    function populateAIGrid() {
-        aiActionsGrid.innerHTML = "";
-        Object.entries(AI_PROMPTS).forEach(([key, info]) => {
-            const card = document.createElement("button");
-            card.className = `ai-card ${key === selectedAiKey ? 'active' : ''}`;
-            card.innerHTML = `
-                <div class="ai-card-title">${info.title}</div>
-                <div class="ai-card-desc">${info.desc}</div>
-            `;
-            card.addEventListener("click", () => {
-                document.querySelectorAll(".ai-card").forEach(c => c.classList.remove("active"));
-                card.classList.add("active");
-                selectedAiKey = key;
-                updateAIPromptPreview();
-            });
-            aiActionsGrid.appendChild(card);
+    // ─── AI CHAT REDESIGN IMPLEMENTATION ──────────────────────────
+    
+    // Markdown-to-HTML helper for chat messages
+    function renderMarkdownToHtml(markdown) {
+        if (!markdown) return "";
+        let html = markdown;
+
+        // Escape raw HTML tags to prevent HTML injection/XSS issues
+        html = html
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        // Code blocks
+        html = html.replace(/```([a-zA-Z0-9-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+            return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
         });
-        updateAIPromptPreview();
+        html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+            return `<pre><code>${code.trim()}</code></pre>`;
+        });
+
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+        // Headers
+        html = html.replace(/^### (.*?)$/gm, "<h3>$1</h3>");
+        html = html.replace(/^## (.*?)$/gm, "<h4>$1</h4>");
+        html = html.replace(/^# (.*?)$/gm, "<h5>$1</h5>");
+
+        // Bold
+        html = html.replace(/\*\*([\s\S]*?)\*\*/g, "<strong>$1</strong>");
+
+        // Unordered lists
+        html = html.replace(/^\s*[-*]\s+(.*?)$/gm, "<li>$1</li>");
+        // Wrap consecutive list items in <ul>
+        html = html.replace(/(<li>[\s\S]*?<\/li>)/g, "<ul>$1</ul>");
+        html = html.replace(/<\/ul>\s*<ul>/g, "");
+
+        // Paragraphs
+        const blocks = html.split(/\n{2,}/);
+        html = blocks.map(block => {
+            if (block.startsWith("<pre>") || block.startsWith("<h3>") || block.startsWith("<h4>") || block.startsWith("<h5>") || block.startsWith("<ul>") || block.startsWith("<li>")) {
+                return block;
+            }
+            return `<p>${block.replace(/\n/g, "<br>")}</p>`;
+        }).join("");
+
+        return html;
     }
 
-    function updateAIPromptPreview() {
-        const mdContext = generateKnowledgePackMarkdown();
-        const activePromptObj = AI_PROMPTS[selectedAiKey];
-        if (activePromptObj) {
-            aiPromptPreview.value = activePromptObj.prompt(mdContext);
+    // Load settings from localStorage
+    function loadAISettings() {
+        if (!aiProviderSelect) return;
+        const provider = localStorage.getItem("archbench_ai_provider") || "gemini";
+        aiProviderSelect.value = provider;
+
+        // Gemini
+        if (inputGeminiKey) inputGeminiKey.value = localStorage.getItem("archbench_gemini_key") || "";
+        if (inputGeminiModel) inputGeminiModel.value = localStorage.getItem("archbench_gemini_model") || "gemini-2.5-flash";
+        if (inputGeminiUrl) inputGeminiUrl.value = localStorage.getItem("archbench_gemini_url") || "https://generativelanguage.googleapis.com";
+
+        // OpenAI
+        if (inputOpenaiKey) inputOpenaiKey.value = localStorage.getItem("archbench_openai_key") || "";
+        if (inputOpenaiModel) inputOpenaiModel.value = localStorage.getItem("archbench_openai_model") || "gpt-4o";
+        if (inputOpenaiUrl) inputOpenaiUrl.value = localStorage.getItem("archbench_openai_url") || "https://api.openai.com/v1";
+
+        // Ollama
+        if (inputOllamaUrl) inputOllamaUrl.value = localStorage.getItem("archbench_ollama_url") || "http://localhost:11434";
+        if (inputOllamaModel) inputOllamaModel.value = localStorage.getItem("archbench_ollama_model") || "qwen2.5:coder";
+
+        const inject = localStorage.getItem("archbench_ai_inject_context");
+        if (inject !== null && aiInjectContext) {
+            aiInjectContext.checked = inject === "true";
         }
+
+        updateProviderSectionsVisibility();
+    }
+
+    // Save settings to localStorage
+    function saveAISettings() {
+        if (!aiProviderSelect) return;
+        localStorage.setItem("archbench_ai_provider", aiProviderSelect.value);
+        
+        // Gemini
+        if (inputGeminiKey) localStorage.setItem("archbench_gemini_key", inputGeminiKey.value.trim());
+        if (inputGeminiModel) localStorage.setItem("archbench_gemini_model", inputGeminiModel.value.trim() || "gemini-2.5-flash");
+        if (inputGeminiUrl) localStorage.setItem("archbench_gemini_url", inputGeminiUrl.value.trim() || "https://generativelanguage.googleapis.com");
+
+        // OpenAI
+        if (inputOpenaiKey) localStorage.setItem("archbench_openai_key", inputOpenaiKey.value.trim());
+        if (inputOpenaiModel) localStorage.setItem("archbench_openai_model", inputOpenaiModel.value.trim() || "gpt-4o");
+        if (inputOpenaiUrl) localStorage.setItem("archbench_openai_url", inputOpenaiUrl.value.trim() || "https://api.openai.com/v1");
+
+        // Ollama
+        if (inputOllamaUrl) localStorage.setItem("archbench_ollama_url", inputOllamaUrl.value.trim() || "http://localhost:11434");
+        if (inputOllamaModel) localStorage.setItem("archbench_ollama_model", inputOllamaModel.value.trim() || "qwen2.5:coder");
+
+        if (aiInjectContext) {
+            localStorage.setItem("archbench_ai_inject_context", aiInjectContext.checked);
+        }
+
+        showToast("AI configuration saved successfully!");
+        if (aiSettingsDrawer) {
+            aiSettingsDrawer.classList.remove("open");
+        }
+    }
+
+    function updateProviderSectionsVisibility() {
+        if (!aiProviderSelect) return;
+        const val = aiProviderSelect.value;
+        if (sectionGemini) sectionGemini.style.display = val === "gemini" ? "flex" : "none";
+        if (sectionOpenai) sectionOpenai.style.display = val === "openai" ? "flex" : "none";
+        if (sectionOllama) sectionOllama.style.display = val === "ollama" ? "flex" : "none";
+    }
+
+    // Chat History Management
+    let chatHistoryLog = [];
+
+    function appendMessage(role, content, isHtml = false) {
+        if (!aiChatHistory) return null;
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `ai-msg ${role}`;
+        
+        if (role === "system") {
+            msgDiv.textContent = content;
+        } else if (isHtml) {
+            msgDiv.innerHTML = content;
+        } else {
+            msgDiv.innerHTML = renderMarkdownToHtml(content);
+        }
+
+        aiChatHistory.appendChild(msgDiv);
+        aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+        
+        // Keep in memory
+        chatHistoryLog.push({ role, content, isHtml });
+        return msgDiv;
+    }
+
+    function appendTypingIndicator() {
+        if (!aiChatHistory) return null;
+        const indicatorDiv = document.createElement("div");
+        indicatorDiv.className = "ai-msg ai typing";
+        indicatorDiv.innerHTML = `
+            <div class="ai-typing-indicator">
+                <span class="ai-typing-dot"></span>
+                <span class="ai-typing-dot"></span>
+                <span class="ai-typing-dot"></span>
+            </div>
+        `;
+        aiChatHistory.appendChild(indicatorDiv);
+        aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+        return indicatorDiv;
+    }
+
+    function initChatHistory() {
+        if (!aiChatHistory) return;
+        aiChatHistory.innerHTML = "";
+        chatHistoryLog = [];
+        
+        appendMessage("system", "Welcome to the AI System Architect! Configure your LLM under Settings, click a template shortcut below, or ask a custom question about this architecture spec.");
+    }
+
+    // Populate the template chips at the bottom of the chat panel
+    function populateAIChips() {
+        if (!aiQuickTemplates) return;
+        aiQuickTemplates.innerHTML = "";
+        Object.entries(AI_PROMPTS).forEach(([key, info]) => {
+            const chip = document.createElement("button");
+            chip.className = "ai-chip";
+            chip.textContent = info.title;
+            chip.addEventListener("click", () => {
+                const mdContext = generateKnowledgePackMarkdown();
+                const compiledPrompt = info.prompt(mdContext);
+                sendChatMessage(compiledPrompt, `Shortcut: ${info.title}`);
+            });
+            aiQuickTemplates.appendChild(chip);
+        });
+    }
+
+    // Call API endpoints
+    async function sendChatMessage(promptText, displayQuery = null) {
+        const queryToDisplay = displayQuery || (promptText.length > 80 ? promptText.substring(0, 80) + "..." : promptText);
+        
+        // Add user bubble
+        appendMessage("user", queryToDisplay);
+
+        // Add typing indicator
+        const typingIndicator = appendTypingIndicator();
+
+        const provider = aiProviderSelect.value;
+        let responseText = "";
+        let errorOccurred = false;
+
+        try {
+            if (provider === "gemini") {
+                const apiKey = inputGeminiKey.value.trim();
+                const model = inputGeminiModel.value.trim() || "gemini-2.5-flash";
+                let baseUrl = inputGeminiUrl.value.trim() || "https://generativelanguage.googleapis.com";
+                
+                if (!apiKey) {
+                    throw new Error("Gemini API Key is missing. Click 'Settings' to configure it.");
+                }
+
+                // Normalise baseUrl trailing slash
+                if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+
+                const endpoint = `${baseUrl}/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                parts: [{ text: promptText }]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => ({}));
+                    throw new Error(errorJson.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!responseText) {
+                    throw new Error("Empty response received from Gemini API.");
+                }
+
+            } else if (provider === "openai") {
+                const apiKey = inputOpenaiKey.value.trim();
+                const model = inputOpenaiModel.value.trim() || "gpt-4o";
+                let baseUrl = inputOpenaiUrl.value.trim() || "https://api.openai.com/v1";
+
+                if (!apiKey) {
+                    throw new Error("OpenAI API Key is missing. Click 'Settings' to configure it.");
+                }
+
+                if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+                const endpoint = `${baseUrl}/chat/completions`;
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: "user", content: promptText }
+                        ],
+                        temperature: 0.2
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => ({}));
+                    throw new Error(errorJson.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                responseText = data.choices?.[0]?.message?.content;
+                if (!responseText) {
+                    throw new Error("Empty response received from OpenAI API.");
+                }
+
+            } else if (provider === "ollama") {
+                let baseUrl = inputOllamaUrl.value.trim() || "http://localhost:11434";
+                const model = inputOllamaModel.value.trim() || "qwen2.5:coder";
+
+                if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+                const endpoint = `${baseUrl}/api/chat`;
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: "user", content: promptText }
+                        ],
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}. Ensure Ollama is running and OLLAMA_ORIGINS="*" serve is active.`);
+                }
+
+                const data = await response.json();
+                responseText = data.message?.content;
+                if (!responseText) {
+                    throw new Error("Empty response received from Ollama API.");
+                }
+            }
+        } catch (err) {
+            console.error("AI Error:", err);
+            responseText = `⚠️ Error: ${err.message}`;
+            errorOccurred = true;
+        } finally {
+            // Remove typing indicator bubble
+            if (typingIndicator) typingIndicator.remove();
+        }
+
+        // Add assistant response
+        if (errorOccurred) {
+            appendMessage("error", responseText);
+        } else {
+            appendMessage("ai", responseText);
+        }
+    }
+
+    // Keep legacy support for initial onboarding triggers
+    function populateAIGrid() {
+        populateAIChips();
     }
 
     const tabBtns = [tabBtnSimulator, tabBtnLog, tabBtnAi, tabBtnPack, tabBtnBatch, tabBtnHealth, tabBtnHistory, tabBtnTerminal];
@@ -1407,7 +1729,11 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         if (targetId === "log") {
             updateExecutionLogUI();
         } else if (targetId === "ai") {
-            updateAIPromptPreview();
+            if (chatHistoryLog.length === 0) {
+                initChatHistory();
+            }
+            loadAISettings();
+            populateAIChips();
         } else if (targetId === "health") {
             updateArchitectureHealthUI();
         } else if (targetId === "history") {
@@ -1546,9 +1872,68 @@ Write detailed test specifications (both happy path and edge/fail cases) for ver
         downloadFile(json, filename, "application/json");
     });
 
-    btnCopyPrompt.addEventListener("click", () => {
-        copyToClipboard(aiPromptPreview.value, "AI prompt copied! Paste in ChatGPT/Claude/Gemini.");
-    });
+    // AI Chat & Settings Event Listeners
+    if (btnAiSettings) {
+        btnAiSettings.addEventListener("click", () => {
+            if (aiSettingsDrawer) aiSettingsDrawer.classList.add("open");
+        });
+    }
+    if (btnCloseSettings) {
+        btnCloseSettings.addEventListener("click", () => {
+            if (aiSettingsDrawer) aiSettingsDrawer.classList.remove("open");
+        });
+    }
+    if (btnSaveSettings) {
+        btnSaveSettings.addEventListener("click", () => {
+            saveAISettings();
+        });
+    }
+    if (aiProviderSelect) {
+        aiProviderSelect.addEventListener("change", () => {
+            updateProviderSectionsVisibility();
+        });
+    }
+    if (btnClearChat) {
+        btnClearChat.addEventListener("click", () => {
+            if (confirm("Clear chat history?")) {
+                initChatHistory();
+            }
+        });
+    }
+
+    if (aiChatInput) {
+        // Auto-growing textarea for chat input
+        aiChatInput.addEventListener("input", () => {
+            aiChatInput.style.height = "auto";
+            aiChatInput.style.height = Math.min(100, aiChatInput.scrollHeight) + "px";
+        });
+
+        // Key press handlers (Enter to send, Shift+Enter for new line)
+        aiChatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (btnAiSend) btnAiSend.click();
+            }
+        });
+    }
+
+    if (btnAiSend) {
+        btnAiSend.addEventListener("click", () => {
+            if (!aiChatInput) return;
+            const text = aiChatInput.value.trim();
+            if (!text) return;
+            
+            let finalPrompt = text;
+            if (aiInjectContext && aiInjectContext.checked) {
+                const mdContext = generateKnowledgePackMarkdown();
+                finalPrompt = `User question: ${text}\n\n=== CURRENT ARCHITECTURE SPECIFICATION ===\n${mdContext}`;
+            }
+            
+            aiChatInput.value = "";
+            aiChatInput.style.height = "34px";
+            sendChatMessage(finalPrompt, text);
+        });
+    }
 
     btnCopyPack.addEventListener("click", () => {
         const pack = JSON.stringify(generateKnowledgePackJSON(), null, 2);
