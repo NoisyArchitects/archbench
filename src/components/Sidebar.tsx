@@ -43,6 +43,14 @@ export const Sidebar: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [dockRight, setDockRight] = useState(true);
 
+    // Automatically expand sidebar and set tab when a flow is activated
+    useEffect(() => {
+        if (activeFlow) {
+            setSidebarTab('simulator');
+            setCollapsed(false);
+        }
+    }, [activeFlow, setSidebarTab]);
+
     // AI Tab state
     const [chatHistory, setChatHistory] = useState<Message[]>([]);
     const [chatInput, setChatInput] = useState('');

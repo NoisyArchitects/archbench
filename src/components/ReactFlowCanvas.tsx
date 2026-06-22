@@ -7,7 +7,8 @@ import ReactFlow, {
     useNodes,
     Background,
     BackgroundVariant,
-    ReactFlowProvider
+    ReactFlowProvider,
+    useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -59,13 +60,35 @@ function getEdgeHandles(
 const CanvasInner: React.FC<{
     setZoomLabel: (label: string) => void;
 }> = ({ setZoomLabel }) => {
-    const { nodes, connections, currentProject, updateNodePosition } = useProjectStore();
+    const { 
+        nodes, 
+        connections, 
+        currentProject, 
+        updateNodePosition,
+        activeFlow,
+        activeStepIndex
+    } = useProjectStore();
     const { zoom } = useViewport();
+    const { fitView } = useReactFlow();
 
     // Sync zoom label to header
     React.useEffect(() => {
         setZoomLabel(`${Math.round(zoom * 100)}%`);
     }, [zoom, setZoomLabel]);
+
+    // Viewport auto-centering/focusing tracking when active step changes
+    React.useEffect(() => {
+        if (activeFlow && activeStepIndex >= 0) {
+            const step = activeFlow.steps[activeStepIndex];
+            if (step && step.node) {
+                fitView({
+                    nodes: [{ id: step.node }],
+                    duration: 350,
+                    maxZoom: 0.8
+                });
+            }
+        }
+    }, [activeFlow, activeStepIndex, fitView]);
 
     // Retrieve active selection from ReactFlow's state using useNodes()
     const rfNodesList = useNodes();
