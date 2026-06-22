@@ -71,6 +71,19 @@ const CanvasInner: React.FC<{
     const { zoom } = useViewport();
     const { fitView } = useReactFlow();
 
+    const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
+
+    // Find all node IDs directly connected to the hovered node
+    const connectedNodeIds = useMemo(() => {
+        if (!hoveredNodeId) return new Set<string>();
+        const set = new Set<string>();
+        connections.forEach(([from, to]) => {
+            if (from === hoveredNodeId) set.add(to);
+            if (to === hoveredNodeId) set.add(from);
+        });
+        return set;
+    }, [hoveredNodeId, connections]);
+
     // Sync zoom label to header
     React.useEffect(() => {
         setZoomLabel(`${Math.round(zoom * 100)}%`);
@@ -130,17 +143,29 @@ const CanvasInner: React.FC<{
 
         // 3. Add actual interactive diagram nodes
         nodes.forEach(n => {
+            let className = '';
+            if (hoveredNodeId) {
+                if (n.id === hoveredNodeId) {
+                    className = 'hover-primary';
+                } else if (connectedNodeIds.has(n.id)) {
+                    className = 'hover-connected';
+                } else {
+                    className = 'hover-dimmed';
+                }
+            }
+
             list.push({
                 id: n.id,
                 type: 'customNode',
                 position: { x: n.x, y: n.y },
                 data: n,
                 dragHandle: '.node-header', // drag by node header only to allow scrolling body
+                className: className
             });
         });
 
         return list;
-    }, [currentProject?.layers, currentProject?.trustBoundary, nodes]);
+    }, [currentProject?.layers, currentProject?.trustBoundary, nodes, hoveredNodeId, connectedNodeIds]);
 
     // Build connections list
     const rfEdges = useMemo(() => {
@@ -156,7 +181,8 @@ const CanvasInner: React.FC<{
             const tNodeGeo = targetNode ? { x: targetNode.x, y: targetNode.y, w: 280, h: 300 } : defaultNode;
 
             const handles = getEdgeHandles(sNodeGeo, tNodeGeo);
-            const isHighlighted = selectedNodeIds.has(from) || selectedNodeIds.has(to);
+            const isHighlighted = selectedNodeIds.has(from) || selectedNodeIds.has(to) || (hoveredNodeId === from || hoveredNodeId === to);
+            const isHoverDimmed = hoveredNodeId ? (hoveredNodeId !== from && hoveredNodeId !== to) : false;
 
             return {
                 id: `edge-${from}-${to}-${idx}`,
@@ -170,11 +196,12 @@ const CanvasInner: React.FC<{
                     type,
                     sourceColor,
                     targetColor,
-                    isHighlighted
+                    isHighlighted,
+                    isHoverDimmed
                 }
             } as Edge;
         });
-    }, [connections, nodes, selectedNodeIds]);
+    }, [connections, nodes, selectedNodeIds, hoveredNodeId]);
 
     const onNodesChange = (changes: NodeChange[]) => {
         changes.forEach(change => {
@@ -202,6 +229,12 @@ const CanvasInner: React.FC<{
                 nodesDraggable={true}
                 nodesConnectable={false}
                 elementsSelectable={true}
+                onNodeMouseEnter={(_, node) => {
+                    if (node.type === 'customNode') {
+                        setHoveredNodeId(node.id);
+                    }
+                }}
+                onNodeMouseLeave={() => setHoveredNodeId(null)}
             >
                 <Background 
                     variant={BackgroundVariant.Lines} 

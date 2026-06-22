@@ -41,8 +41,8 @@ The goal of this document is to capture:
 - [ ] Add New Workflow
 
 ### Missing Legacy Features
-- [ ] Data Flow Visualization
-- [ ] Hover Intelligence
+- [x] Data Flow Visualization (DONE)
+- [x] Hover Intelligence (DONE)
 
 ### Product Evolution & Developer Feedback
 - [ ] View Mode vs Edit Mode
@@ -308,7 +308,7 @@ Requires dedicated UX review.
 
 ## Missing Legacy Features
 
-### Data Flow Visualization
+### Data Flow Visualization [DONE]
 
 Previously existed.
 
@@ -323,7 +323,7 @@ Needs comparison against legacy implementation.
 
 ---
 
-### Hover Intelligence
+### Hover Intelligence [DONE]
 
 **Legacy behavior:**
 Hover card → highlight related items
@@ -420,7 +420,7 @@ Must remain:
 4. Improve mobile drawer behavior [DONE]
 5. Improve chat panel controls [DONE]
 6. Improve initial node layout
-7. Restore data flow visualization
+7. Restore data flow visualization [DONE]
 
 These changes alone should dramatically improve next-day usability.
 

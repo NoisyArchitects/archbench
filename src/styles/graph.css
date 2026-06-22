@@ -297,6 +297,46 @@ html, body {
     opacity: 0.75 !important;
 }
 
+/* ── Hover Highlighting States (Figma/Blender panel styling) ───── */
+
+.react-flow__node.hover-dimmed {
+    opacity: 0.25 !important;
+}
+
+.react-flow__node.hover-primary {
+    z-index: 80 !important;
+}
+
+.react-flow__node.hover-primary .graph-node {
+    border-color: var(--node-color) !important;
+    box-shadow: var(--node-shadow), 0 0 60px color-mix(in srgb, var(--node-color) 20%, transparent) !important;
+}
+
+.react-flow__node.hover-connected {
+    z-index: 70 !important;
+}
+
+.react-flow__node.hover-connected .graph-node {
+    border-color: color-mix(in srgb, var(--node-color) 60%, transparent) !important;
+    box-shadow: var(--node-shadow), 0 0 35px color-mix(in srgb, var(--node-color) 8%, transparent) !important;
+}
+
+.conn-line.hover-dimmed {
+    opacity: 0.15 !important;
+}
+
+.conn-arrow.hover-dimmed {
+    opacity: 0.1 !important;
+}
+
+.conn-label.hover-dimmed {
+    opacity: 0.08 !important;
+}
+
+.conn-dot.hover-dimmed {
+    opacity: 0 !important;
+}
+
 /* ── Execution Step Badge ────────────────────────────────────── */
 
 .step-badge {
