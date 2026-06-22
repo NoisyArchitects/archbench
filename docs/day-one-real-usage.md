@@ -24,6 +24,34 @@ The goal of this document is to capture:
 
 ---
 
+## Roadmap Status Checklist
+
+### P0 – Broken Functionality
+- [ ] Auto Layout Missing
+- [x] Flow Testing Broken (DONE)
+- [x] Flow Loading Issues (DONE)
+- [ ] Import Creates New History
+- [ ] Watch Mode Issues
+
+### P1 – UX Problems
+- [ ] Chat Drawer Toggle
+- [ ] Mobile Drawer Default State
+- [ ] Import + Watch Workflow
+- [ ] Live Watch Placement
+- [ ] Add New Workflow
+
+### Missing Legacy Features
+- [ ] Data Flow Visualization
+- [ ] Hover Intelligence
+
+### Product Evolution & Developer Feedback
+- [ ] View Mode vs Edit Mode
+- [ ] Manual Architecture Editing
+- [ ] Transparent Test Execution
+- [ ] Architecture-Aware Automated Testing
+
+---
+
 ## Biggest Discovery
 
 ArchBench is not a diagram tool.
