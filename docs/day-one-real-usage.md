@@ -173,7 +173,7 @@ When `architecture.md` loads:
 
 ---
 
-### Flow Testing Broken
+### Flow Testing Broken [DONE]
 
 Previously worked in:
 * Legacy app
@@ -187,7 +187,7 @@ Needs restoration.
 
 ---
 
-### Flow Loading Issues
+### Flow Loading Issues [DONE]
 
 Flow-related functionality appears incomplete after migration.
 
@@ -386,8 +386,8 @@ Must remain:
 ## Immediate Fixes For Tomorrow
 
 **Highest impact:**
-1. Fix flow testing
-2. Fix flow loading
+1. Fix flow testing [DONE]
+2. Fix flow loading [DONE]
 3. Improve import/watch workflow
 4. Improve mobile drawer behavior
 5. Improve chat panel controls
