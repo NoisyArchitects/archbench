@@ -71,3 +71,12 @@ export default defineConfig([
   },
 ])
 ```
+
+## Community
+
+We welcome contributions, discussions, and feedback from builders of all backgrounds and experience levels.
+
+Please check out our:
+* [LICENSE](LICENSE) (MIT Licensed)
+* [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details on our community standards.
+
