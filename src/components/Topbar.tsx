@@ -24,7 +24,10 @@ export const Topbar: React.FC<TopbarProps> = ({
         liveWatchEnabled,
         setLiveWatchEnabled,
         setSidebarTab,
-        deleteProject
+        deleteProject,
+        isTerminalVisible,
+        setTerminalVisible,
+        setTerminalActiveTab
     } = useProjectStore();
 
     const { zoomIn, zoomOut, fitView, setViewport } = useReactFlow();
@@ -239,11 +242,21 @@ export const Topbar: React.FC<TopbarProps> = ({
             
             <div className="topbar-right">
                 <button 
-                    className="tb-btn" 
+                    className={`tb-btn ${isTerminalVisible ? 'active' : ''}`} 
                     id="btn-term-toggle" 
-                    style={{ background: "rgba(180, 130, 255, 0.1)", borderColor: "rgba(180, 130, 255, 0.2)", color: "hsl(280, 85%, 75%)" }} 
+                    style={{ 
+                        background: isTerminalVisible ? "rgba(180, 130, 255, 0.2)" : "rgba(180, 130, 255, 0.1)", 
+                        borderColor: isTerminalVisible ? "hsl(280, 85%, 65%)" : "rgba(180, 130, 255, 0.2)", 
+                        color: isTerminalVisible ? "#ffffff" : "hsl(280, 85%, 75%)" 
+                    }} 
                     title="Open Workspace Terminal Console"
-                    onClick={() => setSidebarTab('terminal')}
+                    onClick={() => {
+                        const nextVisible = !isTerminalVisible;
+                        setTerminalVisible(nextVisible);
+                        if (nextVisible) {
+                            setTerminalActiveTab('shell');
+                        }
+                    }}
                 >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     <span>Terminal</span>

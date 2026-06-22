@@ -9,11 +9,7 @@ import {
 import { calculateArchitectureQualityScore, calculateDatabaseDependencyScore } from '../utils/metrics';
 import { renderMarkdownToHtml } from '../utils/projectHelpers';
 import { generateArchitectureHealthReport } from '../utils/health-engine';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
 import { BatchLog } from '../types';
-import { exportProjectToMarkdown } from '../utils/parser';
 
 interface Message {
     role: 'system' | 'user' | 'ai' | 'error';
@@ -94,13 +90,7 @@ export const Sidebar: React.FC = () => {
     const [batchStatusMsg, setBatchStatusMsg] = useState("No batch audit active.");
     const batchTimerRef = useRef<any | null>(null);
 
-    // Terminal references
-    const terminalRef = useRef<HTMLDivElement>(null);
-    const terminalInstanceRef = useRef<Terminal | null>(null);
-    const terminalFitAddonRef = useRef<FitAddon | null>(null);
-    const terminalInputBufferRef = useRef("");
-    const terminalHistoryRef = useRef<string[]>([]);
-    const terminalHistoryIndexRef = useRef(-1);
+
 
     // Initialize list of checked flows for Batch checklist
     useEffect(() => {
@@ -448,209 +438,7 @@ export const Sidebar: React.FC = () => {
         });
     };
 
-    // Terminal console shell initializer and command processor
-    useEffect(() => {
-        if (sidebarTab === 'terminal' && terminalRef.current) {
-            // Delay slightly to ensure layout elements fit
-            setTimeout(() => {
-                if (terminalInstanceRef.current) {
-                    terminalInstanceRef.current.focus();
-                    return;
-                }
 
-                const term = new Terminal({
-                    cursorBlink: true,
-                    theme: {
-                        background: '#07080d',
-                        foreground: '#e2e4e9',
-                        cursor: '#b482ff',
-                        selectionBackground: 'rgba(180, 130, 255, 0.3)'
-                    },
-                    fontSize: 10,
-                    fontFamily: 'monospace',
-                    rows: 10,
-                    convertEol: true
-                });
-
-                const fitAddon = new FitAddon();
-                term.loadAddon(fitAddon);
-                if (terminalRef.current) {
-                    term.open(terminalRef.current);
-                }
-                fitAddon.fit();
-
-                term.writeln("\x1b[1;35mArchBench Project Agent Terminal v1.0\x1b[0m");
-                term.writeln("Type \x1b[32m'help'\x1b[0m to list available workspace commands.\n");
-
-                const writePrompt = () => {
-                    const projName = currentProject ? currentProject.title.toLowerCase().replace(/[^a-z0-9]/g, "-") : "untitled";
-                    term.write(`\x1b[1;36marchbench:${projName}$ \x1b[0m`);
-                };
-
-                const clearCurrentLine = () => {
-                    const projName = currentProject ? currentProject.title.toLowerCase().replace(/[^a-z0-9]/g, "-") : "untitled";
-                    const promptLen = `archbench:${projName}$ `.length;
-                    term.write("\r" + " ".repeat(promptLen + terminalInputBufferRef.current.length + 10) + "\r");
-                    writePrompt();
-                };
-
-                writePrompt();
-
-                term.onKey(e => {
-                    const char = e.key;
-                    const code = e.domEvent.keyCode;
-
-                    if (code === 13) { // Enter
-                        term.write("\r\n");
-                        const line = terminalInputBufferRef.current.trim();
-                        if (line) {
-                            terminalHistoryRef.current.push(terminalInputBufferRef.current);
-                            terminalHistoryIndexRef.current = terminalHistoryRef.current.length;
-                            
-                            // Process command
-                            const args = line.split(/\s+/);
-                            const cmd = args[0].toLowerCase();
-
-                            if (cmd === 'help') {
-                                term.writeln("\x1b[1mAvailable Workspace Commands:\x1b[0m");
-                                term.writeln("  \x1b[32mhelp\x1b[0m                  List available commands.");
-                                term.writeln("  \x1b[32march parse\x1b[0m            Validate and parse the active project spec.");
-                                term.writeln("  \x1b[32march simulate [flow]\x1b[0m  Simulate a sequence flow by ID.");
-                                term.writeln("  \x1b[32march audit\x1b[0m             Run structural rules and health audits.");
-                                term.writeln("  \x1b[32march compare\x1b[0m           Compare current project against local snapshots.");
-                                term.writeln("  \x1b[32march export\x1b[0m            Download active specification as Markdown.");
-                                term.writeln("  \x1b[32mclear\x1b[0m                 Clear the console.");
-                                term.writeln("");
-                            } else if (cmd === 'clear') {
-                                term.clear();
-                            } else if (cmd === 'arch') {
-                                const sub = args[1] ? args[1].toLowerCase() : "";
-                                if (sub === 'parse') {
-                                    term.writeln(`\x1b[35m[Parsing Workspace Project: ${currentProject ? currentProject.title : "Untitled"}]\x1b[0m`);
-                                    term.writeln(`- Specification Version: ${currentProject ? currentProject.version : "1.0"}`);
-                                    term.writeln(`- Components (Nodes): ${nodes.length} loaded`);
-                                    term.writeln(`- Dependencies (Connections): ${connections.length} loaded`);
-                                    term.writeln(`- Workflows (Flows): ${flows.length} loaded`);
-                                    term.writeln("\n\x1b[1mActive Nodes list:\x1b[0m");
-                                    nodes.forEach(n => {
-                                        term.writeln(`  * \x1b[36m${n.id}\x1b[0m [${n.category}]: ${n.title} (x:${n.x}, y:${n.y})`);
-                                    });
-                                    term.writeln("");
-                                } else if (sub === 'simulate') {
-                                    const fid = args[2];
-                                    if (!fid) {
-                                        term.writeln("Error: Missing flow ID. Available flows:");
-                                        flows.forEach(f => term.writeln(`  - ${f.id}`));
-                                    } else {
-                                        const f = flows.find(x => x.id === fid || x.id.toLowerCase() === fid.toLowerCase());
-                                        if (!f) {
-                                            term.writeln(`Error: Flow ID '${fid}' not found.`);
-                                        } else {
-                                            startFlow(f.id);
-                                            term.writeln(`🚀 Simulation playback triggered for: ${f.title}`);
-                                        }
-                                    }
-                                } else if (sub === 'audit') {
-                                    term.writeln("\x1b[35m[Running Workspace Audit...]\x1b[0m");
-                                    let anomalies = 0;
-                                    connections.forEach(conn => {
-                                        const fromNode = nodes.find(n => n.id === conn[0]);
-                                        const toNode = nodes.find(n => n.id === conn[1]);
-                                        if (fromNode?.category === 'Entry Point' && toNode?.category === 'Infrastructure') {
-                                            term.writeln(`  \x1b[33m⚠️ WARNING: Direct coupling found from Entry Point '${fromNode.id}' to Infrastructure Store '${toNode.id}'!\x1b[0m`);
-                                            anomalies++;
-                                        }
-                                    });
-                                    if (unifiedBatchLog) {
-                                        const h = generateArchitectureHealthReport(unifiedBatchLog, nodes, connections);
-                                        if (h) {
-                                            term.writeln(`- Quality Score: \x1b[32m${calculateArchitectureQualityScore(h)}/100\x1b[0m`);
-                                            term.writeln(`- SPOF count: ${h.risks.filter(r => r.title === "Single Point of Failure").length}`);
-                                        }
-                                    } else {
-                                        term.writeln(`- Direct coupling anomalies detected: ${anomalies}`);
-                                        term.writeln("(Run batch checklists Sequential Audit for complete health indicators)");
-                                    }
-                                    term.writeln("");
-                                } else if (sub === 'compare') {
-                                    term.writeln("\x1b[35m[Querying Local IndexedDB Snapshots...]\x1b[0m");
-                                    if (historyCache.architectureSnapshots.length === 0) {
-                                        term.writeln("No audit snapshots found.");
-                                    } else {
-                                        historyCache.architectureSnapshots.forEach((snap, i) => {
-                                            term.writeln(`  [#${i+1}] Snap: ${new Date(snap.timestamp).toLocaleString()} - Nodes: ${snap.nodeCount}, Links: ${snap.connectionCount}`);
-                                        });
-                                    }
-                                    term.writeln("");
-                                } else if (sub === 'export') {
-                                    term.writeln("Exporting Markdown specification...");
-                                    const md = exportProjectToMarkdown(currentProject!);
-                                    term.writeln(md.substring(0, 150) + "...\n(Download triggered on main browser thread)");
-                                } else {
-                                    term.writeln("Subcommand not recognized: " + sub);
-                                }
-                            } else {
-                                term.writeln(`\x1b[31mCommand not recognized: '${line}'. Type 'help'.\x1b[0m`);
-                            }
-                        }
-                        
-                        terminalInputBufferRef.current = "";
-                        writePrompt();
-                    } else if (code === 8) { // Backspace
-                        if (terminalInputBufferRef.current.length > 0) {
-                            terminalInputBufferRef.current = terminalInputBufferRef.current.slice(0, -1);
-                            term.write("\b \b");
-                        }
-                    } else if (code === 38) { // Arrow Up
-                        if (terminalHistoryRef.current.length > 0 && terminalHistoryIndexRef.current > 0) {
-                            terminalHistoryIndexRef.current--;
-                            clearCurrentLine();
-                            terminalInputBufferRef.current = terminalHistoryRef.current[terminalHistoryIndexRef.current];
-                            term.write(terminalInputBufferRef.current);
-                        }
-                    } else if (code === 40) { // Arrow Down
-                        if (terminalHistoryRef.current.length > 0 && terminalHistoryIndexRef.current < terminalHistoryRef.current.length - 1) {
-                            terminalHistoryIndexRef.current++;
-                            clearCurrentLine();
-                            terminalInputBufferRef.current = terminalHistoryRef.current[terminalHistoryIndexRef.current];
-                            term.write(terminalInputBufferRef.current);
-                        } else if (terminalHistoryIndexRef.current === terminalHistoryRef.current.length - 1) {
-                            terminalHistoryIndexRef.current = terminalHistoryRef.current.length;
-                            clearCurrentLine();
-                            terminalInputBufferRef.current = "";
-                        }
-                    } else if (code >= 37 && code <= 40) {
-                        // ignore other arrow keys
-                    } else {
-                        terminalInputBufferRef.current += char;
-                        term.write(char);
-                    }
-                });
-
-                terminalInstanceRef.current = term;
-                terminalFitAddonRef.current = fitAddon;
-            }, 100);
-        }
-
-        // Cleanup terminal instances on panel switch / unmount
-        return () => {
-            if (sidebarTab !== 'terminal' && terminalInstanceRef.current) {
-                terminalInstanceRef.current.dispose();
-                terminalInstanceRef.current = null;
-            }
-        };
-    }, [sidebarTab, currentProject]);
-
-    // Handle resizing fits
-    useEffect(() => {
-        const handleResize = () => {
-            if (terminalFitAddonRef.current) {
-                terminalFitAddonRef.current.fit();
-            }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     // Health report computations
     const activeHealthReport = useMemo(() => {
@@ -695,7 +483,6 @@ export const Sidebar: React.FC = () => {
                         {sidebarTab === 'health' && 'Architecture Health Report'}
                         {sidebarTab === 'history' && 'Audit History Index'}
                         {sidebarTab === 'pack' && 'Knowledge Context Pack'}
-                        {sidebarTab === 'terminal' && 'Workspace Commands Shell'}
                     </span>
                     <span className="fp-subtitle" id="fp-subtitle">
                         {sidebarTab === 'ai' && 'Interactive BYO-LLM diagram audits'}
@@ -705,7 +492,6 @@ export const Sidebar: React.FC = () => {
                         {sidebarTab === 'health' && 'Quality indicators and recommendations'}
                         {sidebarTab === 'history' && 'Local IndexedDB audit snapshots'}
                         {sidebarTab === 'pack' && 'Compile spec documents for LLMs'}
-                        {sidebarTab === 'terminal' && 'Command line architecture analysis'}
                     </span>
                 </div>
                 <div className="fp-header-actions">
@@ -739,9 +525,7 @@ export const Sidebar: React.FC = () => {
                 <button className={`fp-tab ${sidebarTab === 'pack' ? 'active' : ''}`} onClick={() => handleTabClick('pack')} title="Markdown Knowledge Pack">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"/><polygon points="12 22.08 12 12 21 6.92 21 17.08 12 22.08"/><polygon points="12 12 3 6.92 12 1.84 21 6.92 12 12"/></svg>
                 </button>
-                <button className={`fp-tab ${sidebarTab === 'terminal' ? 'active' : ''}`} onClick={() => handleTabClick('terminal')} title="Project Terminal Shell">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-                </button>
+
 
                 <button 
                     className="fp-tab fp-tab-toggle" 
@@ -1242,26 +1026,7 @@ export const Sidebar: React.FC = () => {
                         </div>
                     )}
 
-                    {/* ── PROJECT AGENT TERMINAL ────────────────────────────── */}
-                    {sidebarTab === 'terminal' && (
-                        <div className="fp-tab-panel active" id="panel-terminal" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <p style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '8px' }}>
-                                Execute local architecture checks inside the workspace console environment. Type <code>help</code> to list commands.
-                            </p>
-                            <div 
-                                ref={terminalRef} 
-                                id="terminal-container" 
-                                style={{ 
-                                    flex: 1, 
-                                    background: '#07080d', 
-                                    border: '1px solid rgba(255,255,255,0.08)', 
-                                    borderRadius: '6px', 
-                                    overflow: 'hidden', 
-                                    padding: '6px' 
-                                }}
-                            />
-                        </div>
-                    )}
+
 
                 </div>
             )}

@@ -17,6 +17,7 @@ function App() {
     const currentProject = useProjectStore(s => s.currentProject);
     const loadProject = useProjectStore(s => s.loadProject);
     const updateProject = useProjectStore(s => s.updateProject);
+    const isTerminalVisible = useProjectStore(s => s.isTerminalVisible);
 
     const [zoomLabel, setZoomLabel] = useState('50%');
     const [wizardOpen, setWizardOpen] = useState(false);
@@ -92,7 +93,7 @@ function App() {
                         <div style={{ flex: 1, position: 'relative' }}>
                             <ReactFlowCanvas setZoomLabel={setZoomLabel} />
                         </div>
-                        <TerminalConsole />
+                        {isTerminalVisible && <TerminalConsole />}
                     </div>
                     <Sidebar />
                 </div>

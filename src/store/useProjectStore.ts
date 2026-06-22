@@ -16,6 +16,8 @@ interface ProjectState {
     unifiedBatchLog: BatchLog | null;
     watchDirectoryHandle: any | null;
     hoveredNodeId: string | null;
+    isTerminalVisible: boolean;
+    terminalActiveTab: 'trace' | 'shell';
 
     // Actions
     initializeStore: () => void;
@@ -33,6 +35,8 @@ interface ProjectState {
     deleteProject: (projectId: string) => Promise<void>;
     updateProject: (projectId: string, title: string, version: string, spec: Project) => void;
     setHoveredNodeId: (id: string | null) => void;
+    setTerminalVisible: (visible: boolean) => void;
+    setTerminalActiveTab: (tab: 'trace' | 'shell') => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -48,6 +52,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     unifiedBatchLog: null,
     watchDirectoryHandle: null,
     hoveredNodeId: null,
+    isTerminalVisible: true,
+    terminalActiveTab: 'trace',
 
     initializeStore: () => {
         const list = getAvailableProjects();
@@ -146,6 +152,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     setHoveredNodeId: (id: string | null) => {
         set({ hoveredNodeId: id });
+    },
+
+    setTerminalVisible: (visible: boolean) => {
+        set({ isTerminalVisible: visible });
+    },
+
+    setTerminalActiveTab: (tab: 'trace' | 'shell') => {
+        set({ terminalActiveTab: tab });
     },
 
     setWatchDirectoryHandle: (handle: any | null) => {
