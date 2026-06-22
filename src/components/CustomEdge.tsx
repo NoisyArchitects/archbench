@@ -22,6 +22,7 @@ export const CustomEdge: React.FC<EdgeProps> = ({
     const type = data?.type || "request";
     const sourceColor = data?.sourceColor || "hsl(200,80%,58%)";
     const targetColor = data?.targetColor || "hsl(200,80%,58%)";
+    const isHighlighted = data?.isHighlighted || false;
 
     // Determine simulation state classes
     let isActive = false;
@@ -80,7 +81,7 @@ export const CustomEdge: React.FC<EdgeProps> = ({
     const arrowD = `M ${targetX - aLen * Math.cos(angle - 0.4)} ${targetY - aLen * Math.sin(angle - 0.4)} L ${targetX} ${targetY} L ${targetX - aLen * Math.cos(angle + 0.4)} ${targetY - aLen * Math.sin(angle + 0.4)}`;
 
     // Build class lists
-    const stateClass = isActive ? 'flow-active' : isPrev ? 'flow-active-prev' : isDimmed ? 'flow-dimmed' : '';
+    const stateClass = isActive ? 'flow-active' : isPrev ? 'flow-active-prev' : isDimmed ? 'flow-dimmed' : isHighlighted ? 'highlighted' : '';
     
     const lineClasses = ['conn-line', stateClass].filter(Boolean).join(' ');
     const arrowClasses = ['conn-arrow', stateClass].filter(Boolean).join(' ');
@@ -90,6 +91,9 @@ export const CustomEdge: React.FC<EdgeProps> = ({
     const lineStyle: React.CSSProperties = {};
     if (type === "future") {
         lineStyle.opacity = "0.12";
+    }
+    if (isHighlighted) {
+        lineStyle.filter = `drop-shadow(0 0 5px ${targetColor})`;
     }
 
     const gradientId = `cg-${id.replace(/[^a-zA-Z0-9-]/g, '_')}`;
@@ -128,6 +132,7 @@ export const CustomEdge: React.FC<EdgeProps> = ({
                     y={(sourceY + targetY) / 2 - 7}
                     textAnchor="middle"
                     className={labelClasses}
+                    style={isHighlighted ? { fill: '#fff', fontWeight: 'bold' } : undefined}
                 >
                     {label}
                 </text>
@@ -135,12 +140,13 @@ export const CustomEdge: React.FC<EdgeProps> = ({
 
             {/* Flow dot (Only animate when not in a dimmed state during active flow simulation, or always if default) */}
             <circle
-                r={3}
+                r={isHighlighted ? 4.5 : 3}
                 fill={targetColor}
                 className={dotClasses}
+                style={isHighlighted ? { filter: `drop-shadow(0 0 3px ${targetColor})`, opacity: 0.9 } : undefined}
             >
                 <animateMotion
-                    dur={`${3 + Math.random() * 2.5}s`}
+                    dur={`${(isHighlighted ? 1.5 : 3) + Math.random() * 2.5}s`}
                     repeatCount="indefinite"
                     path={pathD}
                 />

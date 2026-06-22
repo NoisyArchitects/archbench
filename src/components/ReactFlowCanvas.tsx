@@ -3,7 +3,11 @@ import ReactFlow, {
     Node, 
     Edge, 
     NodeChange,
-    useViewport
+    useViewport,
+    useNodes,
+    Background,
+    BackgroundVariant,
+    ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -62,6 +66,11 @@ const CanvasInner: React.FC<{
     React.useEffect(() => {
         setZoomLabel(`${Math.round(zoom * 100)}%`);
     }, [zoom, setZoomLabel]);
+
+    // Retrieve active selection from ReactFlow's state using useNodes()
+    const rfNodesList = useNodes();
+    const selectedNodes = useMemo(() => rfNodesList.filter((node: Node) => node.selected), [rfNodesList]);
+    const selectedNodeIds = useMemo(() => new Set(selectedNodes.map((n: Node) => n.id)), [selectedNodes]);
 
     // Build virtual background layers + actual node elements
     const rfNodes = useMemo(() => {
@@ -124,6 +133,7 @@ const CanvasInner: React.FC<{
             const tNodeGeo = targetNode ? { x: targetNode.x, y: targetNode.y, w: 280, h: 300 } : defaultNode;
 
             const handles = getEdgeHandles(sNodeGeo, tNodeGeo);
+            const isHighlighted = selectedNodeIds.has(from) || selectedNodeIds.has(to);
 
             return {
                 id: `edge-${from}-${to}-${idx}`,
@@ -136,11 +146,12 @@ const CanvasInner: React.FC<{
                     label,
                     type,
                     sourceColor,
-                    targetColor
+                    targetColor,
+                    isHighlighted
                 }
             } as Edge;
         });
-    }, [connections, nodes]);
+    }, [connections, nodes, selectedNodeIds]);
 
     const onNodesChange = (changes: NodeChange[]) => {
         changes.forEach(change => {
@@ -168,7 +179,14 @@ const CanvasInner: React.FC<{
                 nodesDraggable={true}
                 nodesConnectable={false}
                 elementsSelectable={true}
-            />
+            >
+                <Background 
+                    variant={BackgroundVariant.Lines} 
+                    color="rgba(255, 255, 255, 0.025)" 
+                    gap={20} 
+                    size={1} 
+                />
+            </ReactFlow>
         </div>
     );
 };
@@ -177,6 +195,10 @@ const CanvasInner: React.FC<{
 export const ReactFlowCanvas: React.FC<{
     setZoomLabel: (label: string) => void;
 }> = ({ setZoomLabel }) => {
-    return <CanvasInner setZoomLabel={setZoomLabel} />;
+    return (
+        <ReactFlowProvider>
+            <CanvasInner setZoomLabel={setZoomLabel} />
+        </ReactFlowProvider>
+    );
 };
 
