@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useReactFlow } from 'reactflow';
 import { useProjectStore } from '../store/useProjectStore';
-import { exportProjectToMarkdown, parseMarkdownToProject } from '../utils/parser';
-import { getCustomProjects, saveCustomProjects, DEFAULT_PROJECT_ID } from '../utils/projectHelpers';
-import { Project } from '../types';
+import { exportProjectToMarkdown } from '../utils/parser';
+import { DEFAULT_PROJECT_ID } from '../utils/projectHelpers';
 
 interface TopbarProps {
     zoomLabel: string;
@@ -20,7 +19,6 @@ export const Topbar: React.FC<TopbarProps> = ({
         availableProjects,
         currentProject,
         loadProject,
-        reloadProjectsList,
         liveWatchEnabled,
         setLiveWatchEnabled,
         setSidebarTab,
@@ -33,7 +31,6 @@ export const Topbar: React.FC<TopbarProps> = ({
 
     const { zoomIn, zoomOut, fitView } = useReactFlow();
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Export active project as Markdown
     const handleExport = () => {
@@ -55,46 +52,6 @@ export const Topbar: React.FC<TopbarProps> = ({
         }
     };
 
-    // Trigger file import
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    // Process imported JSON/MD file
-    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result as string;
-            try {
-                let parsedProject: Project;
-                if (file.name.endsWith('.json')) {
-                    parsedProject = JSON.parse(content);
-                } else {
-                    parsedProject = parseMarkdownToProject(content);
-                }
-
-                // Assign a unique ID
-                parsedProject.id = "proj_" + Date.now();
-
-                // Save to local storage
-                const custom = getCustomProjects();
-                custom.push(parsedProject);
-                saveCustomProjects(custom);
-
-                // Reload store and load
-                reloadProjectsList();
-                loadProject(parsedProject);
-                alert(`Successfully imported project: ${parsedProject.title}`);
-            } catch (err: any) {
-                console.error("Import error:", err);
-                alert(`Import failed: ${err.message || 'Check file format correctness'}`);
-            }
-        };
-        reader.readAsText(file);
-    };
 
     return (
         <header className="topbar" id="topbar">
@@ -181,21 +138,10 @@ export const Topbar: React.FC<TopbarProps> = ({
                             </div>
                         )}
                     </div>
-                    <button className="tb-btn project-action-btn" id="btn-project-new" title="Create a new project" onClick={onOpenWizardModal}>
+                    <button className="tb-btn project-action-btn" id="btn-project-new" title="Create Workspace" onClick={onOpenWizardModal}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        <span>New</span>
+                        <span>Create Workspace</span>
                     </button>
-                    <button className="tb-btn project-action-btn" id="btn-project-import" title="Import a project file" onClick={handleImportClick}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <span>Import</span>
-                    </button>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileImport} 
-                        accept=".json,.md" 
-                        style={{ display: 'none' }} 
-                    />
                 </div>
             </div>
             

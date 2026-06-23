@@ -38,7 +38,13 @@ function App() {
                 let currentText = '';
                 if (watchDirectoryHandle) {
                     try {
-                        const fileHandle = await watchDirectoryHandle.getFileHandle("architecture.md");
+                        let fileHandle;
+                        try {
+                            const arcbenchDir = await watchDirectoryHandle.getDirectoryHandle(".arcbench");
+                            fileHandle = await arcbenchDir.getFileHandle("architecture.md");
+                        } catch (err) {
+                            fileHandle = await watchDirectoryHandle.getFileHandle("architecture.md");
+                        }
                         const file = await fileHandle.getFile();
                         currentText = await file.text();
                     } catch (e) {
