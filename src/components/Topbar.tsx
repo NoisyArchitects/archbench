@@ -27,7 +27,8 @@ export const Topbar: React.FC<TopbarProps> = ({
         deleteProject,
         isTerminalVisible,
         setTerminalVisible,
-        setTerminalActiveTab
+        setTerminalActiveTab,
+        nodes
     } = useProjectStore();
 
     const { zoomIn, zoomOut, fitView, setViewport } = useReactFlow();
@@ -212,7 +213,23 @@ export const Topbar: React.FC<TopbarProps> = ({
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                 </button>
                 <span className="tb-divider"></span>
-                <button className="tb-btn" id="btn-fit" title="Fit to View" onClick={() => fitView({ padding: 0.2, duration: 800 })}>
+                <button 
+                    className="tb-btn" 
+                    id="btn-fit" 
+                    title="Fit to View" 
+                    onClick={() => {
+                        if (nodes && nodes.length > 0) {
+                            fitView({
+                                nodes: nodes.map(n => ({ id: n.id })),
+                                padding: 0.25,
+                                duration: 800,
+                                maxZoom: 0.6
+                            });
+                        } else {
+                            fitView({ padding: 0.25, duration: 800 });
+                        }
+                    }}
+                >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                     <span>Fit</span>
                 </button>

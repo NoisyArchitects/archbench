@@ -26,3 +26,6 @@ dist-ssr
 # Project reference screenshots
 ref/
 ref/*
+
+# Vite dependency cache
+.vite/

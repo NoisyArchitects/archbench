@@ -76,6 +76,24 @@ const CanvasInner: React.FC<{
         setZoomLabel(`${Math.round(zoom * 100)}%`);
     }, [zoom, setZoomLabel]);
 
+    const isSidebarCollapsed = useProjectStore(s => s.isSidebarCollapsed);
+    const isSidebarDockedRight = useProjectStore(s => s.isSidebarDockedRight);
+
+    // Auto-center the graph layout whenever the project changes or panels toggle
+    React.useEffect(() => {
+        if (nodes && nodes.length > 0) {
+            const timer = setTimeout(() => {
+                fitView({
+                    nodes: nodes.map(n => ({ id: n.id })),
+                    padding: 0.25,
+                    duration: 450,
+                    maxZoom: 0.6
+                });
+            }, 300); // Wait for sidebar collapse slide animation to finish
+            return () => clearTimeout(timer);
+        }
+    }, [currentProject, isSidebarCollapsed, isSidebarDockedRight, fitView]);
+
     // Viewport auto-centering/focusing tracking when active step changes
     React.useEffect(() => {
         if (activeFlow && activeStepIndex >= 0) {

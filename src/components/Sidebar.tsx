@@ -540,8 +540,6 @@ export const Sidebar: React.FC = () => {
                     className="fp-tab fp-tab-toggle" 
                     style={{ 
                         marginTop: 'auto', 
-                        borderTop: '1px solid rgba(255, 255, 255, 0.08)', 
-                        paddingTop: '12px',
                         background: 'rgba(180, 130, 255, 0.12)',
                         color: 'hsl(280, 95%, 75%)',
                         boxShadow: '0 -2px 10px rgba(0,0,0,0.3)',
