@@ -510,9 +510,6 @@ export const Sidebar: React.FC = () => {
                     <button className="fp-action-btn btn-dock" id="fp-dock" title="Cycle Dock Position" onClick={() => setSidebarDockedRight(!isSidebarDockedRight)}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                     </button>
-                    <button className="fp-action-btn btn-minimize" id="fp-minimize" title={isSidebarCollapsed ? 'Restore Sidebar' : 'Minimize Sidebar'} onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}>
-                        <svg className="minimize-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: (isSidebarCollapsed !== isSidebarDockedRight) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 9 11 12 14 15"/></svg>
-                    </button>
                 </div>
             </div>
 
@@ -541,9 +538,27 @@ export const Sidebar: React.FC = () => {
 
                 <button 
                     className="fp-tab fp-tab-toggle" 
-                    style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }} 
+                    style={{ 
+                        marginTop: 'auto', 
+                        borderTop: '1px solid rgba(255, 255, 255, 0.08)', 
+                        paddingTop: '12px',
+                        background: 'rgba(180, 130, 255, 0.12)',
+                        color: 'hsl(280, 95%, 75%)',
+                        boxShadow: '0 -2px 10px rgba(0,0,0,0.3)',
+                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }} 
                     onClick={() => setSidebarCollapsed(!isSidebarCollapsed)} 
                     title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(180, 130, 255, 0.22)';
+                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.boxShadow = '0 0 12px rgba(180, 130, 255, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(180, 130, 255, 0.12)';
+                        e.currentTarget.style.color = 'hsl(280, 95%, 75%)';
+                        e.currentTarget.style.boxShadow = '0 -2px 10px rgba(0,0,0,0.3)';
+                    }}
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: (isSidebarCollapsed !== isSidebarDockedRight) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                         <polyline points="15 18 9 12 15 6"/>
@@ -1039,6 +1054,49 @@ export const Sidebar: React.FC = () => {
                     )}
 
 
+
+                    {/* Attribution footer (visible when sidebar is open) */}
+                    <div style={{
+                        marginTop: 'auto',
+                        padding: '10px 16px',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                        background: 'rgba(5, 6, 11, 0.3)',
+                        fontSize: '9px',
+                        color: 'rgba(255, 255, 255, 0.35)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Crafted with 🤍 by Noisy Architects</span>
+                            <span style={{ opacity: 0.6 }}>v1.0.0</span>
+                        </div>
+                        <a 
+                            href="https://www.netlify.com" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ 
+                                color: 'rgba(255, 255, 255, 0.45)', 
+                                textDecoration: 'none', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '5px',
+                                transition: 'color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)'; }}
+                        >
+                            <span style={{ 
+                                display: 'inline-block',
+                                width: '5px',
+                                height: '5px',
+                                borderRadius: '50%',
+                                background: '#00C7B7',
+                                boxShadow: '0 0 6px #00C7B7'
+                            }} />
+                            Powered by Netlify
+                        </a>
+                    </div>
 
                 </div>
             )}

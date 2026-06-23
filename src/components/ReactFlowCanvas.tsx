@@ -7,7 +7,6 @@ import ReactFlow, {
     useNodes,
     Background,
     BackgroundVariant,
-    ReactFlowProvider,
     useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -209,6 +208,7 @@ const CanvasInner: React.FC<{
                     }
                 }}
                 onNodeMouseLeave={() => setHoveredNodeId(null)}
+                proOptions={{ hideAttribution: true }}
             >
                 <Background 
                     variant={BackgroundVariant.Lines} 
@@ -226,9 +226,7 @@ export const ReactFlowCanvas: React.FC<{
     setZoomLabel: (label: string) => void;
 }> = ({ setZoomLabel }) => {
     return (
-        <ReactFlowProvider>
-            <CanvasInner setZoomLabel={setZoomLabel} />
-        </ReactFlowProvider>
+        <CanvasInner setZoomLabel={setZoomLabel} />
     );
 };
 

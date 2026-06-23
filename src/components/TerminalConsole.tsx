@@ -19,7 +19,6 @@ export const TerminalConsole: React.FC = () => {
         unifiedBatchLog,
         currentProject,
         startFlow,
-        setTerminalVisible,
         terminalActiveTab,
         setTerminalActiveTab
     } = useProjectStore();
@@ -485,11 +484,16 @@ export const TerminalConsole: React.FC = () => {
         }
 
         return (
-            <div style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontSize: '18px' }}>💻</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '10px' }}>
-                    NOISY-ARCHITECTS:~$ archbench --audit --live <span style={{ color: 'rgba(255,255,255,0.15)' }}># Waiting for simulation execution trace logs...</span>
-                </span>
+            <div style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '18px' }}>💻</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+                        NOISY-ARCHITECTS:~$ archbench --audit --live
+                    </span>
+                </div>
+                <div style={{ paddingLeft: '30px', fontSize: '9.5px', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', lineHeight: 1.4 }}>
+                    [sys] Capture Engine: Active. Run a workflow simulation (via header play buttons) or sequential audit (via Batch tab checklist) to record execution logs here.
+                </div>
             </div>
         );
     };
@@ -584,8 +588,8 @@ export const TerminalConsole: React.FC = () => {
                     <div className="terminal-dots" style={{ display: 'flex', gap: '5px' }}>
                         <span 
                             style={{ width: '8.5px', height: '8.5px', borderRadius: '50%', background: '#ff5f56', cursor: 'pointer' }} 
-                            title="Close Console"
-                            onClick={(e) => { e.stopPropagation(); setTerminalVisible(false); }}
+                            title="Minimize/Collapse"
+                            onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
                         />
                         <span 
                             style={{ width: '8.5px', height: '8.5px', borderRadius: '50%', background: '#ffbd2e', cursor: 'pointer' }} 
@@ -741,19 +745,36 @@ export const TerminalConsole: React.FC = () => {
                 >
                     {/* Live Trace logs View */}
                     {terminalActiveTab === 'trace' && (
-                        <div style={{ flex: 1, overflow: 'auto', padding: '14px', fontSize: '9.5px', lineHeight: '1.45', textAlign: 'left' }}>
-                            {viewMode === 'terminal' ? (
-                                renderTerminalLogs()
-                            ) : (
-                                <pre style={{ margin: 0, padding: 0, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                                    {activeFlow 
-                                        ? JSON.stringify(generateExecutionLogJSON(activeFlow, activeStepIndex, nodes), null, 2)
-                                        : unifiedBatchLog 
-                                            ? JSON.stringify(unifiedBatchLog, null, 2)
-                                            : "Select and run a simulation scenario to record system execution logs."
-                                    }
-                                </pre>
-                            )}
+                        <div style={{ flex: 1, overflow: 'auto', padding: '14px', fontSize: '9.5px', lineHeight: '1.45', textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ 
+                                padding: '6px 10px', 
+                                background: 'rgba(180, 130, 255, 0.04)', 
+                                border: '1px solid rgba(180, 130, 255, 0.1)', 
+                                borderRadius: '6px', 
+                                marginBottom: '12px', 
+                                color: 'rgba(255, 255, 255, 0.65)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '9px'
+                            }}>
+                                <span>💡</span>
+                                <span>Captured message payload logs are compiled and streamed here in real-time during flow playback.</span>
+                            </div>
+                            <div style={{ flex: 1, overflow: 'auto' }}>
+                                {viewMode === 'terminal' ? (
+                                    renderTerminalLogs()
+                                ) : (
+                                    <pre style={{ margin: 0, padding: 0, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                                        {activeFlow 
+                                            ? JSON.stringify(generateExecutionLogJSON(activeFlow, activeStepIndex, nodes), null, 2)
+                                            : unifiedBatchLog 
+                                                ? JSON.stringify(unifiedBatchLog, null, 2)
+                                                : "Select and run a simulation scenario to record system execution logs."
+                                        }
+                                    </pre>
+                                )}
+                            </div>
                         </div>
                     )}
 
